@@ -11,6 +11,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2025.7.14-hbd8a1cb_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/contourpy-1.3.2-py313h0ebd0e5_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/cycler-0.12.1-pyhd8ed1ab_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/et_xmlfile-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/fonttools-4.59.0-py313ha0c97b7_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/freetype-2.13.3-hce30654_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/icu-75.1-hfee45f7_0.conda
@@ -46,13 +47,16 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/matplotlib-3.10.3-py313h39782a4_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/matplotlib-base-3.10.3-py313haaf02c0_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/munkres-1.1.4-pyhd8ed1ab_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/narwhals-2.0.1-pyhe01879c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ncurses-6.5-h5e97a16_3.conda
-      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/numpy-2.3.1-py313h674b998_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/numpy-2.3.2-py313h674b998_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openjpeg-2.5.3-h8a3d83b_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openpyxl-3.1.5-py313h90caf49_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openssl-3.5.1-h81ee809_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/packaging-25.0-pyh29332c3_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/pandas-2.3.1-py313hd1f53c0_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/pillow-11.3.0-py313hb37fac4_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/plotly-6.2.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/pthread-stubs-0.4-hd74edd7_1002.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyparsing-3.2.3-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/python-3.13.5-hf3f3da0_102_cp313.conda
@@ -137,6 +141,15 @@ packages:
   license_family: BSD
   size: 13399
   timestamp: 1733332563512
+- conda: https://conda.anaconda.org/conda-forge/noarch/et_xmlfile-2.0.0-pyhd8ed1ab_1.conda
+  sha256: 2209534fbf2f70c20661ff31f57ab6a97b82ee98812e8a2dcb2b36a0d345727c
+  md5: 71bf9646cbfabf3022c8da4b6b4da737
+  depends:
+  - python >=3.9
+  license: MIT
+  license_family: MIT
+  size: 21908
+  timestamp: 1733749746332
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/fonttools-4.59.0-py313ha0c97b7_0.conda
   sha256: 6c98619a486dcd4526f32faf810b1bc03411e8cd43e17164e02bd0547f2bf8ce
   md5: ca685619fa816c0dbf88ca41f8db1a57
@@ -536,6 +549,16 @@ packages:
   license_family: Apache
   size: 15851
   timestamp: 1749895533014
+- conda: https://conda.anaconda.org/conda-forge/noarch/narwhals-2.0.1-pyhe01879c_0.conda
+  sha256: 167ed2f6100909830863531faa2dce250eedee78f2d64c4e5506dc3f3ae3c354
+  md5: 5f0dea40791cecf0f82882b9eea7f7c1
+  depends:
+  - python >=3.9
+  - python
+  license: MIT
+  license_family: MIT
+  size: 240527
+  timestamp: 1753814733349
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ncurses-6.5-h5e97a16_3.conda
   sha256: 2827ada40e8d9ca69a153a45f7fd14f32b2ead7045d3bbb5d10964898fe65733
   md5: 068d497125e4bf8a66bf707254fff5ae
@@ -544,24 +567,24 @@ packages:
   license: X11 AND BSD-3-Clause
   size: 797030
   timestamp: 1738196177597
-- conda: https://conda.anaconda.org/conda-forge/osx-arm64/numpy-2.3.1-py313h674b998_1.conda
-  sha256: 0df21bfeb49a32661d36a71981981df3d7f20c790d4a6f1edaca471e1fe1d8c2
-  md5: 3accf501d1e3b9323bc01d6172b25a02
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/numpy-2.3.2-py313h674b998_0.conda
+  sha256: d5141dbc26706ba882780233d773229f0c81a40947ab30c6084c7b8b70022823
+  md5: 4ed71a747fb592d7d271c20be89f1966
   depends:
   - python
-  - libcxx >=19
   - __osx >=11.0
   - python 3.13.* *_cp313
+  - libcxx >=19
   - python_abi 3.13.* *_cp313
+  - libcblas >=3.9.0,<4.0a0
   - liblapack >=3.9.0,<4.0a0
   - libblas >=3.9.0,<4.0a0
-  - libcblas >=3.9.0,<4.0a0
   constrains:
   - numpy-base <0a0
   license: BSD-3-Clause
   license_family: BSD
-  size: 6747127
-  timestamp: 1752612977617
+  size: 6747854
+  timestamp: 1753401542639
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openjpeg-2.5.3-h8a3d83b_0.conda
   sha256: 1d59bc72ca7faac06d349c1a280f5cfb8a57ee5896f1e24225a997189d7418c7
   md5: 4b71d78648dbcf68ce8bf22bb07ff838
@@ -575,6 +598,18 @@ packages:
   license_family: BSD
   size: 319362
   timestamp: 1733816781741
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/openpyxl-3.1.5-py313h90caf49_1.conda
+  sha256: 01c9d6e5e3c39c915ee531f37df62f81e374d5c0a0043a8e19eff9ba13479e80
+  md5: d95e17c66b833ff87db71540cde0b28a
+  depends:
+  - et_xmlfile
+  - python >=3.13.0rc1,<3.14.0a0
+  - python >=3.13.0rc1,<3.14.0a0 *_cp313
+  - python_abi 3.13.* *_cp313
+  license: MIT
+  license_family: MIT
+  size: 486426
+  timestamp: 1725461219833
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openssl-3.5.1-h81ee809_0.conda
   sha256: f94fde0f096fa79794c8aa0a2665630bbf9026cc6438e8253f6555fc7281e5a8
   md5: a8ac77e7c7e58d43fa34d60bd4361062
@@ -666,6 +701,19 @@ packages:
   license: HPND
   size: 42120953
   timestamp: 1751482521154
+- conda: https://conda.anaconda.org/conda-forge/noarch/plotly-6.2.0-pyhd8ed1ab_0.conda
+  sha256: d72d601e09722c434871c29a102202178fe1fcf031c6290e10fb4a756c1944a3
+  md5: 8a9590843af49b36f37ac3dbcf5fc3d9
+  depends:
+  - narwhals >=1.15.1
+  - packaging
+  - python >=3.9
+  constrains:
+  - ipywidgets >=7.6
+  license: MIT
+  license_family: MIT
+  size: 5187885
+  timestamp: 1751025216667
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/pthread-stubs-0.4-hd74edd7_1002.conda
   sha256: 8ed65e17fbb0ca944bfb8093b60086e3f9dd678c3448b5de212017394c247ee3
   md5: 415816daf82e0b23a736a069a75e9da7

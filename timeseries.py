@@ -96,6 +96,7 @@ j_cage = jgear.get_group('C')
 j_net = jgear.get_group('N')
 j_wild = jgear.get_group('W')
 
+
 jugear = july_df.groupby('Gear Type')
 ju_cage = jugear.get_group('C')
 ju_net = jugear.get_group('N')
@@ -116,61 +117,61 @@ o_cage = ogear.get_group('C')
 o_net = ogear.get_group('N')
 o_wild = ogear.get_group('W')
 
-# plt.subplots(1, 6, figsize=(4, 3), sharex=False, sharey=True)
-# plt.subplot(1, 6, 1)
-# plt.boxplot(j_cage['d13C'])
-# plt.title('June Cage')
+plt.subplots(1, 6, figsize=(4, 3), sharex=False, sharey=True)
+plt.subplot(1, 6, 1)
+plt.boxplot(j_cage['d13C'])
+plt.title('June Cage')
 
-# plt.subplot(1, 6, 2)
-# plt.boxplot(j_net['d13C'])
-# plt.title('June Net')
+plt.subplot(1, 6, 2)
+plt.boxplot(j_net['d13C'])
+plt.title('June Net')
 
-# plt.subplot(1, 6, 3)
-# plt.boxplot(j_wild['d13C'])
-# plt.title('June Wild')
+plt.subplot(1, 6, 3)
+plt.boxplot(j_wild['d13C'])
+plt.title('June Wild')
 
-# plt.subplot(1, 6, 4)
-# plt.boxplot(o_cage['d13C'])
-# plt.title('Oct Cage')
+plt.subplot(1, 6, 4)
+plt.boxplot(o_cage['d13C'])
+plt.title('Oct Cage')
 
-# plt.subplot(1, 6, 5)
-# plt.boxplot(o_net['d13C'])
-# plt.title('Oct Net')
+plt.subplot(1, 6, 5)
+plt.boxplot(o_net['d13C'])
+plt.title('Oct Net')
 
-# plt.subplot(1, 6, 6)
-# plt.boxplot(o_wild['d13C'])
-# plt.title('Oct wild')
+plt.subplot(1, 6, 6)
+plt.boxplot(o_wild['d13C'])
+plt.title('Oct wild')
 
-# plt.suptitle('d13C by Month')
-# plt.show()
+plt.suptitle('d13C by Month')
+plt.show()
 
-# plt.subplots(1, 6, figsize=(4, 3), sharex=False, sharey=True)
-# plt.subplot(1, 6, 1)
-# plt.boxplot(j_cage['d15N'])
-# plt.title('June Cage')
+plt.subplots(1, 6, figsize=(4, 3), sharex=False, sharey=True)
+plt.subplot(1, 6, 1)
+plt.boxplot(j_cage['d15N'])
+plt.title('June Cage')
 
-# plt.subplot(1, 6, 2)
-# plt.boxplot(j_net['d15N'])
-# plt.title('June Net')
+plt.subplot(1, 6, 2)
+plt.boxplot(j_net['d15N'])
+plt.title('June Net')
 
-# plt.subplot(1, 6, 3)
-# plt.boxplot(j_wild['d15N'])
-# plt.title('June Wild')
+plt.subplot(1, 6, 3)
+plt.boxplot(j_wild['d15N'])
+plt.title('June Wild')
 
-# plt.subplot(1, 6, 4)
-# plt.boxplot(o_cage['d15N'])
-# plt.title('Oct Cage')
+plt.subplot(1, 6, 4)
+plt.boxplot(o_cage['d15N'])
+plt.title('Oct Cage')
 
-# plt.subplot(1, 6, 5)
-# plt.boxplot(o_net['d15N'])
-# plt.title('Oct Net')
+plt.subplot(1, 6, 5)
+plt.boxplot(o_net['d15N'])
+plt.title('Oct Net')
 
-# plt.subplot(1, 6, 6)
-# plt.boxplot(o_wild['d15N'])
-# plt.title('Oct wild')
+plt.subplot(1, 6, 6)
+plt.boxplot(o_wild['d15N'])
+plt.title('Oct wild')
 
-# plt.suptitle('d15N by Month')
-# plt.show()
+plt.suptitle('d15N by Month')
+plt.show()
 
 # plt.subplots(1, 5, figsize=(4, 3), sharex=False, sharey=True)
 # plt.subplot(1, 5, 1)
@@ -338,18 +339,34 @@ wild_df = pd.DataFrame(wild)
 # plt.title('Wild: d15N vs d13C')
 # plt.show()
 
-data.dropna(subset=['Gear Type'], inplace=True)
+# data.dropna(subset=['Gear Type'], inplace=True)
 
-colormap = {
-    'C': 'b', 
-    'N': 'g', 
-    'W': 'r'
-}
+# colormap = {
+#     'C': 'b', 
+#     'N': 'g', 
+#     'W': 'r'
+# }
 
-# for x in data['Gear Type']:
+# # for x in data['Gear Type']:
+# #     if x in colormap:
+# #         plt.scatter(data[data['Gear Type'] == x]['d15N'], 
+# #                     data[data['Gear Type'] == x]['d13C'], 
+# #                     c=colormap[x], 
+# #                     s=50)  # s is the size of the markers
+
+# # # plt.scatter(data['d15N'], data['d13C'], s = ,  color = data['Gear Type']) #doesnt work because c, n, and w are also colors and markers?
+# # plt.xlabel('d15N')
+# # plt.ylabel('d13C')
+# # plt.legend(loc='upper right')
+# # plt.show()
+
+# plt.subplots(2, 2, figsize =(10,8), sharex=False, sharey = False)
+
+# for x in june_df['Gear Type']:
 #     if x in colormap:
-#         plt.scatter(data[data['Gear Type'] == x]['d15N'], 
-#                     data[data['Gear Type'] == x]['d13C'], 
+#         plt.subplot(2, 2, 1)
+#         plt.scatter(june_df[june_df['Gear Type'] == x]['d15N'], 
+#                     june_df[june_df['Gear Type'] == x]['d13C'], 
 #                     c=colormap[x], 
 #                     s=50)  # s is the size of the markers
 
@@ -357,46 +374,30 @@ colormap = {
 # plt.xlabel('d15N')
 # plt.ylabel('d13C')
 # plt.legend(loc='upper right')
-# plt.show()
 
-plt.subplots(2, 2, figsize =(10,8), sharex=False, sharey = False)
+# for x in oct_df['Gear Type']:
+#     if x in colormap:
+#         plt.subplot(2, 2, 2)
+#         plt.scatter(oct_df[oct_df['Gear Type'] == x]['d15N'], 
+#                     oct_df[oct_df['Gear Type'] == x]['d13C'], 
+#                     c=colormap[x], 
+#                     s=50)  # s is the size of the markers
 
-for x in june_df['Gear Type']:
-    if x in colormap:
-        plt.subplot(2, 2, 1)
-        plt.scatter(june_df[june_df['Gear Type'] == x]['d15N'], 
-                    june_df[june_df['Gear Type'] == x]['d13C'], 
-                    c=colormap[x], 
-                    s=50)  # s is the size of the markers
+# # plt.scatter(data['d15N'], data['d13C'], s = ,  color = data['Gear Type']) #doesnt work because c, n, and w are also colors and markers?
+# plt.xlabel('d15N')
+# plt.ylabel('d13C')
+# plt.legend(loc='upper right')
 
-# plt.scatter(data['d15N'], data['d13C'], s = ,  color = data['Gear Type']) #doesnt work because c, n, and w are also colors and markers?
-plt.xlabel('d15N')
-plt.ylabel('d13C')
-plt.legend(loc='upper right')
+# for x in august_df['Gear Type']:
+#     if x in colormap:
+#         plt.subplot(2, 2, 3)
+#         plt.scatter(august_df[august_df['Gear Type'] == x]['d15N'], 
+#                     august_df[august_df['Gear Type'] == x]['d13C'], 
+#                     c=colormap[x], 
+#                     s=50)  # s is the size of the markers
 
-for x in oct_df['Gear Type']:
-    if x in colormap:
-        plt.subplot(2, 2, 2)
-        plt.scatter(oct_df[oct_df['Gear Type'] == x]['d15N'], 
-                    oct_df[oct_df['Gear Type'] == x]['d13C'], 
-                    c=colormap[x], 
-                    s=50)  # s is the size of the markers
-
-# plt.scatter(data['d15N'], data['d13C'], s = ,  color = data['Gear Type']) #doesnt work because c, n, and w are also colors and markers?
-plt.xlabel('d15N')
-plt.ylabel('d13C')
-plt.legend(loc='upper right')
-
-for x in august_df['Gear Type']:
-    if x in colormap:
-        plt.subplot(2, 2, 3)
-        plt.scatter(august_df[august_df['Gear Type'] == x]['d15N'], 
-                    august_df[august_df['Gear Type'] == x]['d13C'], 
-                    c=colormap[x], 
-                    s=50)  # s is the size of the markers
-
-# plt.scatter(data['d15N'], data['d13C'], s = ,  color = data['Gear Type']) #doesnt work because c, n, and w are also colors and markers?
-plt.xlabel('d15N')
-plt.ylabel('d13C')
-plt.legend(loc='upper right')
+# # plt.scatter(data['d15N'], data['d13C'], s = ,  color = data['Gear Type']) #doesnt work because c, n, and w are also colors and markers?
+# plt.xlabel('d15N')
+# plt.ylabel('d13C')
+# plt.legend(loc='upper right')
 plt.show()
