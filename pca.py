@@ -1,3 +1,7 @@
+'''
+THIS IS OLDER CODE, DO NOT USE. SEE stats-analysis.py FOR THE MOST RECENT VERSION
+'''
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler

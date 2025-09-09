@@ -1,11 +1,13 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
 
-file_path = '/Users/adelejordan/Downloads/Hurricane/Isotopes/2023IsotopeDataReport-cleanedinexcel.csv'
+figures = Path(__file__).parent / "figures"
+rawdata = Path(__file__).parent / "data" / "2023IsotopeDataReport-cleanedinexcel.csv"
 
 
-data = pd.read_csv(file_path, header=0, usecols = [
+data = pd.read_csv(rawdata, header=0, usecols = [
     'Analysis', 
     'Sample ID', 
     'Collection Date',
@@ -33,10 +35,6 @@ for i in range(len(data['Date Run'])):
     # 9/6/23 samples were contaiminated 
 
 data.dropna(subset=['Gear Type'], inplace=True) #only scallops and filters are being plotted
-# data_muscle = data[data['Tissue Type (Gonad or Muscle)'] == 'M'] 
-# data_muscle = pd.DataFrame(data_muscle)
-# data_gonad = data[data['Tissue Type (Gonad or Muscle)'] == 'G']
-# data_gonad = pd.DataFrame(data_gonad)
 
 data_muscle = data.dropna(subset = ['Tissue Type (Gonad or Muscle)'])
 data_muscle = data_muscle.drop(data_muscle[data_muscle['Tissue Type (Gonad or Muscle)'] == 'G'].index)
@@ -160,71 +158,97 @@ Box plots for d13C by month separated by gear type
 '''
 Box plots for d13C by gear type separated by month
 '''
-fig = plt.figure(constrained_layout=True, figsize=(6, 6))
-subfigs = fig.subfigures(3, 1, wspace=0.01)
 
-subfigs[1].suptitle('Cages')
-subfigs[1].add_subplot(111).boxplot([j_cage['d13C'], ju_cage['d13C'], a_cage['d13C'], s_cage['d13C'], o_cage['d13C']], labels=['June', 'July', 'August', 'September', 'October'])
-subfigs[1].axes[0].set_ylim(-21,-16)
-subfigs[1].axes[0].set_ylabel('d13C (‰)')
+# fig = plt.figure(constrained_layout=True, figsize=(6, 6))
+# subfigs = fig.subfigures(3, 1, wspace=0.01)
 
-subfigs[0].suptitle('Nets')
-subfigs[0].add_subplot(111).boxplot([j_net['d13C'], ju_net['d13C'], a_net['d13C'], s_net['d13C'], o_net['d13C']], labels=['June', 'July', 'August', 'September', 'October'])
-subfigs[0].axes[0].set_ylim(-21,-16)
-subfigs[0].axes[0].set_ylabel('d13C (‰)')
+# subfigs[1].suptitle('Cages')
+# subfigs[1].add_subplot(111).boxplot([j_cage['d13C'], ju_cage['d13C'], a_cage['d13C'], s_cage['d13C'], o_cage['d13C']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[1].axes[0].set_ylim(-21,-16)
+# subfigs[1].axes[0].set_ylabel('d13C (‰)')
 
-subfigs[2].suptitle('Wild')
-subfigs[2].add_subplot(111).boxplot([j_wild['d13C'], ju_wild['d13C'], a_wild['d13C'], s_wild['d13C'], o_wild['d13C']], labels=['June', 'July', 'August', 'September', 'October'])
-subfigs[2].axes[0].set_ylim(-21,-16)
-subfigs[2].axes[0].set_ylabel('d13C (‰)')
+# subfigs[0].suptitle('Nets')
+# subfigs[0].add_subplot(111).boxplot([j_net['d13C'], ju_net['d13C'], a_net['d13C'], s_net['d13C'], o_net['d13C']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[0].axes[0].set_ylim(-21,-16)
+# subfigs[0].axes[0].set_ylabel('d13C (‰)')
+
+# subfigs[2].suptitle('Wild')
+# subfigs[2].add_subplot(111).boxplot([j_wild['d13C'], ju_wild['d13C'], a_wild['d13C'], s_wild['d13C'], o_wild['d13C']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[2].axes[0].set_ylim(-21,-16)
+# subfigs[2].axes[0].set_ylabel('d13C (‰)')
 
 #plt.show()
 
 '''
 Box plots for d15N by gear type separated by month
 '''
-fig = plt.figure(constrained_layout=True, figsize=(6, 6))
-subfigs = fig.subfigures(3, 1, wspace=0.01)
+# fig = plt.figure(constrained_layout=True, figsize=(6, 6))
+# subfigs = fig.subfigures(3, 1, wspace=0.01)
 
-subfigs[1].suptitle('Cages')
-subfigs[1].add_subplot(111).boxplot([j_cage['d15N'], ju_cage['d15N'], a_cage['d15N'], s_cage['d15N'], o_cage['d15N']], labels=['June', 'July', 'August', 'September', 'October'])
-subfigs[1].axes[0].set_ylim(3,12)
-subfigs[1].axes[0].set_ylabel('d15N (‰)')
+# subfigs[1].suptitle('Cages')
+# subfigs[1].add_subplot(111).boxplot([j_cage['d15N'], ju_cage['d15N'], a_cage['d15N'], s_cage['d15N'], o_cage['d15N']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[1].axes[0].set_ylim(3,12)
+# subfigs[1].axes[0].set_ylabel('d15N (‰)')
 
-subfigs[0].suptitle('Nets')
-subfigs[0].add_subplot(111).boxplot([j_net['d15N'], ju_net['d15N'], a_net['d15N'], s_net['d15N'], o_net['d15N']], labels=['June', 'July', 'August', 'September', 'October'])
-subfigs[0].axes[0].set_ylim(3,12)
-subfigs[0].axes[0].set_ylabel('d15N (‰)')
+# subfigs[0].suptitle('Nets')
+# subfigs[0].add_subplot(111).boxplot([j_net['d15N'], ju_net['d15N'], a_net['d15N'], s_net['d15N'], o_net['d15N']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[0].axes[0].set_ylim(3,12)
+# subfigs[0].axes[0].set_ylabel('d15N (‰)')
 
-subfigs[2].suptitle('Wild')
-subfigs[2].add_subplot(111).boxplot([j_wild['d15N'], ju_wild['d15N'], a_wild['d15N'], s_wild['d15N'], o_wild['d15N']], labels=['June', 'July', 'August', 'September', 'October'])
-subfigs[2].axes[0].set_ylim(3,12)
-subfigs[2].axes[0].set_ylabel('d15N (‰)')
+# subfigs[2].suptitle('Wild')
+# subfigs[2].add_subplot(111).boxplot([j_wild['d15N'], ju_wild['d15N'], a_wild['d15N'], s_wild['d15N'], o_wild['d15N']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[2].axes[0].set_ylim(3,12)
+# subfigs[2].axes[0].set_ylabel('d15N (‰)')
 
 #plt.show()
 
 '''
 This shows a boxplot of C/N (molar) by gear type separated by month
 '''
-fig = plt.figure(constrained_layout=True, figsize=(6, 6))
-subfigs = fig.subfigures(3, 1, wspace=0.01)
+# fig = plt.figure(constrained_layout=True, figsize=(6, 6))
+# subfigs = fig.subfigures(3, 1, wspace=0.01)
 
-subfigs[1].suptitle('Cages')
-subfigs[1].add_subplot(111).boxplot([j_cage['C/N (Molar)'], ju_cage['C/N (Molar)'], a_cage['C/N (Molar)'], s_cage['C/N (Molar)'], o_cage['C/N (Molar)']], labels=['June', 'July', 'August', 'September', 'October'])
-subfigs[1].axes[0].set_ylim(3,6)
-subfigs[1].axes[0].set_ylabel('C/N (Molar)')
+# subfigs[1].suptitle('Cages')
+# subfigs[1].add_subplot(111).boxplot([j_cage['C/N (Molar)'], ju_cage['C/N (Molar)'], a_cage['C/N (Molar)'], s_cage['C/N (Molar)'], o_cage['C/N (Molar)']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[1].axes[0].set_ylim(3,6)
+# subfigs[1].axes[0].set_ylabel('C/N (Molar)')
 
-subfigs[0].suptitle('Nets')
-subfigs[0].add_subplot(111).boxplot([j_net['C/N (Molar)'], ju_net['C/N (Molar)'], a_net['C/N (Molar)'], s_net['C/N (Molar)'], o_net['C/N (Molar)']], labels=['June', 'July', 'August', 'September', 'October'])
-subfigs[0].axes[0].set_ylim(3,6)
-subfigs[0].axes[0].set_ylabel('C/N (Molar)')
+# subfigs[0].suptitle('Nets')
+# subfigs[0].add_subplot(111).boxplot([j_net['C/N (Molar)'], ju_net['C/N (Molar)'], a_net['C/N (Molar)'], s_net['C/N (Molar)'], o_net['C/N (Molar)']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[0].axes[0].set_ylim(3,6)
+# subfigs[0].axes[0].set_ylabel('C/N (Molar)')
 
-subfigs[2].suptitle('Wild')
-subfigs[2].add_subplot(111).boxplot([j_wild['C/N (Molar)'], ju_wild['C/N (Molar)'], a_wild['C/N (Molar)'], s_wild['C/N (Molar)'], o_wild['C/N (Molar)']], labels=['June', 'July', 'August', 'September', 'October'])
-subfigs[2].axes[0].set_ylim(3,6)
-subfigs[2].axes[0].set_ylabel('C/N (Molar)')
+# subfigs[2].suptitle('Wild')
+# subfigs[2].add_subplot(111).boxplot([j_wild['C/N (Molar)'], ju_wild['C/N (Molar)'], a_wild['C/N (Molar)'], s_wild['C/N (Molar)'], o_wild['C/N (Molar)']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[2].axes[0].set_ylim(3,6)
+# subfigs[2].axes[0].set_ylabel('C/N (Molar)')
 
 #plt.show()
+
+
+'''
+This shows a boxplot of %N by gear type separated by month
+'''
+
+# fig = plt.figure(constrained_layout=True, figsize=(6, 6))
+# subfigs = fig.subfigures(3, 1, wspace=0.01)
+
+# subfigs[1].suptitle('Cages')
+# subfigs[1].add_subplot(111).boxplot([j_cage['% N'], ju_cage['% N'], a_cage['% N'], s_cage['% N'], o_cage['% N']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[1].axes[0].set_ylim(7,14)
+# subfigs[1].axes[0].set_ylabel('% N')
+
+# subfigs[0].suptitle('Nets')
+# subfigs[0].add_subplot(111).boxplot([j_net['% N'], ju_net['% N'], a_net['% N'], s_net['% N'], o_net['% N']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[0].axes[0].set_ylim(7,14)
+# subfigs[0].axes[0].set_ylabel('% N')
+
+# subfigs[2].suptitle('Wild')
+# subfigs[2].add_subplot(111).boxplot([j_wild['% N'], ju_wild['% N'], a_wild['% N'], s_wild['% N'], o_wild['% N']], labels=['June', 'July', 'August', 'September', 'October'])
+# subfigs[2].axes[0].set_ylim(7,14)
+# subfigs[2].axes[0].set_ylabel('% N')
+
+# plt.show()
 
 '''
 Table of averages and standard deviations for d13C, d15N, and C/N (molar) by gear type my month
@@ -315,24 +339,115 @@ Something wrong with this
 #                  loc='center')
 # plt.show()
 
-summary = [
-    ['June Net', round(j_net['% N'].mean(),2), round(j_net['% N'].std(),2)],
-    ['June Cage', round(j_cage['% N'].mean(),2), round(j_cage['% N'].std(),2)], 
-    ['June Wild', round(j_wild['% N'].mean(),2), round(j_wild['% N'].std(),2)],
-    ['July Net', round(ju_net['% N'].mean(),2), round(ju_net['% N'].std(),2)],
-    ['July Cage', round(ju_cage['% N'].mean(),2), round(ju_cage['% N'].std(),2)],
-    ['July Wild', round(ju_wild['% N'].mean(),2), round(ju_wild['% N'].std(),2)],
-    ['August Net', round(a_net['% N'].mean(),2), round(a_net['% N'].std(),2)],
-    ['August Cage', round(a_cage['% N'].mean(),2), round(a_cage['% N'].std(),2)],
-    ['August Wild', round(a_wild['% N'].mean(),2), round(a_wild['% N'].std(),2)],
-    ['September Net', round(s_net['% N'].mean(),2), round(s_net['% N'].std(),2)],
-    ['September Cage', round(s_cage['% N'].mean(),2), round(s_cage['% N'].std(),2)],
-    ['October Net', round(o_net['% N'].mean(),2), round(o_net['% N'].std(),2)],
-    ['October Cage', round(o_cage['% N'].mean(),2), round(o_cage['% N'].std(),2)],
-    ['October Wild', round(o_wild['% N'].mean(),2), round(o_wild['% N'].std(),2)]]
+# summary = [
+#     ['June Net', round(j_net['% N'].mean(),2), round(j_net['% N'].std(),2)],
+#     ['June Cage', round(j_cage['% N'].mean(),2), round(j_cage['% N'].std(),2)], 
+#     ['June Wild', round(j_wild['% N'].mean(),2), round(j_wild['% N'].std(),2)],
+#     ['July Net', round(ju_net['% N'].mean(),2), round(ju_net['% N'].std(),2)],
+#     ['July Cage', round(ju_cage['% N'].mean(),2), round(ju_cage['% N'].std(),2)],
+#     ['July Wild', round(ju_wild['% N'].mean(),2), round(ju_wild['% N'].std(),2)],
+#     ['August Net', round(a_net['% N'].mean(),2), round(a_net['% N'].std(),2)],
+#     ['August Cage', round(a_cage['% N'].mean(),2), round(a_cage['% N'].std(),2)],
+#     ['August Wild', round(a_wild['% N'].mean(),2), round(a_wild['% N'].std(),2)],
+#     ['September Net', round(s_net['% N'].mean(),2), round(s_net['% N'].std(),2)],
+#     ['September Cage', round(s_cage['% N'].mean(),2), round(s_cage['% N'].std(),2)],
+#     ['October Net', round(o_net['% N'].mean(),2), round(o_net['% N'].std(),2)],
+#     ['October Cage', round(o_cage['% N'].mean(),2), round(o_cage['% N'].std(),2)],
+#     ['October Wild', round(o_wild['% N'].mean(),2), round(o_wild['% N'].std(),2)]]
 
-table = ax.table(cellText=summary,
-                 colLabels= ['Gear', '%N', '%N SD'],
-                 cellLoc = 'center',
-                 loc='center')
+# table = ax.table(cellText=summary,
+#                  colLabels= ['Gear', '%N', '%N SD'],
+#                  cellLoc = 'center',
+#                  loc='center')
+#plt.savefig(figures / "table.png")
+
+# net_sd = [
+#     ['June Net', round(j_net['d13C'].std(),2), round(j_net['d15N'].std(),2), round(j_net['C/N (Molar)'].std(),2), round(j_net['% N'].std(),2),],
+#     ['July Net', round(ju_net['d13C'].std(),2), round(ju_net['d15N'].std(),2), round(ju_net['C/N (Molar)'].std(),2), round(ju_net['% N'].std(),2),],
+#     ['August Net', round(a_net['d13C'].std(),2), round(a_net['d15N'].std(),2), round(a_net['C/N (Molar)'].std(),2), round(a_net['% N'].std(),2)],
+#     ['September Net', round(s_net['d13C'].std(),2), round(s_net['d15N'].std(),2), round(s_net['C/N (Molar)'].std(),2), round(s_net['% N'].std(),2)],
+#     ['October Net', round(o_net['d13C'].std(),2), round(o_net['d15N'].std(),2), round(o_net['C/N (Molar)'].std(),2), round(o_net['% N'].std(),2)],
+# ]
+
+# table = ax.table(cellText=net_sd,
+#                  colLabels= ['Month', 'd13C SD','d15N SD', 'C/N (Molar) SD', '%N SD'],
+#                  cellLoc = 'center',
+#                  loc='center')
+# ax.set_title('Net')
+# plt.show()
+
+# cage_sd = [
+#     ['June', round(j_cage['d13C'].std(),2), round(j_cage['d15N'].std(),2), round(j_cage['C/N (Molar)'].std(),2), round(j_cage['% N'].std(),2),],
+#     ['July', round(ju_cage['d13C'].std(),2), round(ju_cage['d15N'].std(),2), round(ju_cage['C/N (Molar)'].std(),2), round(ju_cage['% N'].std(),2),],
+#     ['August', round(a_cage['d13C'].std(),2), round(a_cage['d15N'].std(),2), round(a_cage['C/N (Molar)'].std(),2), round(a_cage['% N'].std(),2)],
+#     ['September', round(s_cage['d13C'].std(),2), round(s_cage['d15N'].std(),2), round(s_cage['C/N (Molar)'].std(),2), round(s_cage['% N'].std(),2)],
+#     ['October', round(o_cage['d13C'].std(),2), round(o_cage['d15N'].std(),2), round(o_cage['C/N (Molar)'].std(),2), round(o_cage['% N'].std(),2)],
+# ]
+# table = ax.table(cellText=cage_sd,
+#                  colLabels= ['Month', 'd13C SD','d15N SD', 'C/N (Molar) SD', '%N SD'],
+#                  cellLoc = 'center',
+#                  loc='center')
+# ax.set_title('Cage')
+# plt.show()
+
+# wild_sd = [
+#     ['June', round(j_wild['d13C'].std(),2), round(j_wild['d15N'].std(),2), round(j_wild['C/N (Molar)'].std(),2), round(j_wild['% N'].std(),2),],
+#     ['July', round(ju_wild['d13C'].std(),2), round(ju_wild['d15N'].std(),2), round(ju_wild['C/N (Molar)'].std(),2), round(ju_wild['% N'].std(),2),],
+#     ['August', round(a_wild['d13C'].std(),2), round(a_wild['d15N'].std(),2), round(a_wild['C/N (Molar)'].std(),2), round(a_wild['% N'].std(),2)],
+#     ['September', round(s_wild['d13C'].std(),2), round(s_wild['d15N'].std(),2), round(s_wild['C/N (Molar)'].std(),2), round(s_wild['% N'].std(),2)],
+#     ['October', round(o_wild['d13C'].std(),2), round(o_wild['d15N'].std(),2), round(o_wild['C/N (Molar)'].std(),2), round(o_wild['% N'].std(),2)],
+# ]
+
+# table = ax.table(cellText= wild_sd,
+#                  colLabels= ['Month', 'd13C SD','d15N SD', 'C/N (Molar) SD', '%N SD'],
+#                  cellLoc = 'center',
+#                  loc='center')
+# ax.set_title('Wild')
+# plt.show()
+
+'''
+Bar chart of standard deviations for d13C, d15N, C/N (molar), and %N by month for gear types
+'''
+
+barWidth = 0.2
+fig = plt.subplots(figsize =(20, 8))
+
+wild_d13C_sds = [round(j_wild['d13C'].std(),2), round(ju_wild['d13C'].std(),2), round(a_wild['d13C'].std(),2), round(s_wild['d13C'].std(),2), round(o_wild['d13C'].std(),2)]
+wild_d15N_sds = [round(j_wild['d15N'].std(),2), round(ju_wild['d15N'].std(),2), round(a_wild['d15N'].std(),2), round(s_wild['d15N'].std(),2), round(o_wild['d15N'].std(),2)]
+wild_CN_sds = [round(j_wild['C/N (Molar)'].std(),2), round(ju_wild['C/N (Molar)'].std(),2), round(a_wild['C/N (Molar)'].std(),2), round(s_wild['C/N (Molar)'].std(),2), round(o_wild['C/N (Molar)'].std(),2)]
+wild_N_sds = [round(j_wild['% N'].std(),2), round(ju_wild['% N'].std(),2), round(a_wild['% N'].std(),2), round(s_wild['% N'].std(),2), round(o_wild['% N'].std(),2)]    
+
+net_d13C_sds = [round(j_net['d13C'].std(),2), round(ju_net['d13C'].std(),2), round(a_net['d13C'].std(),2), round(s_net['d13C'].std(),2), round(o_net['d13C'].std(),2)]
+net_d15N_sds = [round(j_net['d15N'].std(),2), round(ju_net['d15N'].std(),2), round(a_net['d15N'].std(),2), round(s_net['d15N'].std(),2), round(o_net['d15N'].std(),2)]
+net_CN_sds = [round(j_net['C/N (Molar)'].std(),2), round(ju_net['C/N (Molar)'].std(),2), round(a_net['C/N (Molar)'].std(),2), round(s_net['C/N (Molar)'].std(),2), round(o_net['C/N (Molar)'].std(),2)]
+net_N_sds = [round(j_net['% N'].std(),2), round(ju_net['% N'].std(),2), round(a_net['% N'].std(),2), round(s_net['% N'].std(),2), round(o_net['% N'].std(),2)]  
+
+cage_d13C_sds = [round(j_cage['d13C'].std(),2), round(ju_cage['d13C'].std(),2), round(a_cage['d13C'].std(),2), round(s_cage['d13C'].std(),2), round(o_cage['d13C'].std(),2)]
+cage_d15N_sds = [round(j_cage['d15N'].std(),2), round(ju_cage['d15N'].std(),2), round(a_cage['d15N'].std(),2), round(s_cage['d15N'].std(),2), round(o_cage['d15N'].std(),2)]
+cage_CN_sds = [round(j_cage['C/N (Molar)'].std(),2), round(ju_cage['C/N (Molar)'].std(),2), round(a_cage['C/N (Molar)'].std(),2), round(s_cage['C/N (Molar)'].std(),2), round(o_cage['C/N (Molar)'].std(),2)]
+cage_N_sds = [round(j_cage['% N'].std(),2), round(ju_cage['% N'].std(),2), round(a_cage['% N'].std(),2), round(s_cage['% N'].std(),2), round(o_cage['% N'].std(),2)]    
+
+
+br1 = np.arange(len(wild_d13C_sds)) 
+br2 = [x + barWidth for x in br1] 
+br3 = [x + barWidth for x in br2] 
+br4 = [x + barWidth for x in br3] 
+br5 = [x + barWidth for x in br4]
+
+'''
+Change the next four lines to plot the gear type you want
+'''
+
+plt.bar(br1, cage_d13C_sds, color='b', width=0.2, label = 'd13C SD')
+plt.bar(br2, cage_d15N_sds, color='r', width=0.2, label = 'd15N SD')
+plt.bar(br3, cage_CN_sds, color='g', width=0.2, label = 'C/N (Molar) SD')
+plt.bar(br4, cage_N_sds, color='y', width=0.2, label = '%N SD')
+
+catwidth = 0.3
+
+plt.ylim(0,2.5)
+plt.xticks([r + catwidth for r in range(len(wild_d13C_sds))], 
+        ['June', 'July', 'August', 'Sept', 'Oct'])
+
+plt.legend()
 plt.show()
