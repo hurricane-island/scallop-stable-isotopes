@@ -278,9 +278,9 @@ if __name__ == "__main__":
     # Look at score plots to visualize how samples relate to each
     # other in the space defined by the principal components
     fig, ax = subplots(figsize=(10, 8))
-    column = Dimension.COLLECTION_DATE.value  # Dimension.GEAR.value
-    for dates in df[column]:
-        ax.scatter(components[:, 0], components[:, 1], c=df[column], cmap="viridis")
+    series = df[Dimension.COLLECTION_DATE.value]  # Dimension.GEAR.value
+    for _ in series:
+        ax.scatter(components[:, 0], components[:, 1], c=series, cmap="viridis")
         ax.set_title("PCA Score Plot: PC1 vs PC2")
         ax.set_xlim(-4, 4)
         ax.set_ylim(-4, 4)
