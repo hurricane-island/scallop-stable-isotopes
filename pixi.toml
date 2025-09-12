@@ -1,8 +1,11 @@
 [workspace]
-authors = ["[Adele Jordan] <[ajae2021@mymail.pomona.edu]>"]
+authors = [
+    "Adele Jordan <ajae2021@mymail.pomona.edu>",
+    "Keeney <nkeeney@hurricaneisland.net>"
+]
 channels = ["conda-forge"]
-name = "Stable-Isotope"
-platforms = ["osx-arm64"]
+name = "scallop-stable-isotope-analysis"
+platforms = ["osx-arm64", "linux-64"]
 version = "0.1.0"
 
 [tasks]
