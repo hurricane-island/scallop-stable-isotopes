@@ -68,6 +68,12 @@ markermap = {
 '''
 In the line below, change data_gonad to data_muscle if you want to plot muscle data
 '''
+mapping = {'C': 'B', 'N': 'T', 'W': 'B'}
+data_muscle['Column Height'] = data_muscle['Gear Type'].map(mapping) #C and W are at the same depth
+
+data_muscle.insert(5, 'Farmed or Wild', 0)
+mapping_farmvswild = {'C': 'F', 'N': 'F', 'W': 'W'}
+data_muscle['Farmed or Wild'] = data_muscle['Gear Type'].map(mapping_farmvswild) 
 
 monthly = data_muscle.groupby('Collection Date') #GONAD OR MUSCLE!!!
 june = monthly.get_group(6)
@@ -82,47 +88,92 @@ august_df = pd.DataFrame(august)
 sept_df = pd.DataFrame(sept)
 oct_df = pd.DataFrame(october)
 
-jgear = june_df.groupby('Gear Type')
-j_cage = jgear.get_group('C')
-j_net = jgear.get_group('N')
+# jgear = june_df.groupby('Gear Type')
+# j_cage = jgear.get_group('C')
+# j_net = jgear.get_group('N')
+# j_wild = jgear.get_group('W')
+# j_cage_filt = jgear.get_group('CF')
+# j_net_filt = jgear.get_group('NF')
+# j_wild_filt = jgear.get_group('WF')
+
+
+# jugear = july_df.groupby('Gear Type')
+# ju_cage = jugear.get_group('C')
+# ju_net = jugear.get_group('N')
+# ju_wild = jugear.get_group('W')
+# ju_cage_filt = jugear.get_group('CF')
+# ju_net_filt = jugear.get_group('NF')
+# ju_wild_filt = jugear.get_group('WF')
+
+# agear = august_df.groupby('Gear Type')
+# a_cage = agear.get_group('C')
+# a_net = agear.get_group('N')
+# a_wild = agear.get_group('W')
+# a_cage_filt = agear.get_group('CF')
+# a_net_filt = agear.get_group('NF')
+# a_wild_filt = agear.get_group('WF')
+
+# sgear = sept_df.groupby('Gear Type')
+# s_cage = sgear.get_group('C')
+# s_net = sgear.get_group('N')
+# s_wild = sgear.get_group('W')
+# s_cage_filt = sgear.get_group('CF')
+# s_net_filt = sgear.get_group('NF')
+# s_wild_filt = sgear.get_group('WF')
+
+# ogear = oct_df.groupby('Gear Type')
+# o_cage = ogear.get_group('C')
+# o_net = ogear.get_group('N')
+# o_wild = ogear.get_group('W')
+# o_cage_filt = ogear.get_group('CF')
+# o_net_filt = ogear.get_group('NF')
+# o_wild_filt = ogear.get_group('WF')
+
+june_df = pd.DataFrame(june)
+july_df = pd.DataFrame(july)
+august_df = pd.DataFrame(august)
+sept_df = pd.DataFrame(sept)
+oct_df = pd.DataFrame(october)
+
+# jgear = june_df.groupby('Column Height')
+# j_top = jgear.get_group('T')
+# j_bottom = jgear.get_group('B')
+
+# jugear = july_df.groupby('Column Height')
+# ju_top = jugear.get_group('T')
+# ju_bottom = jugear.get_group('B')
+
+# agear = august_df.groupby('Column Height')
+# a_top = agear.get_group('T')
+# a_bottom = agear.get_group('B')
+
+# sgear = sept_df.groupby('Column Height')
+# s_top = sgear.get_group('T')
+# s_bottom = sgear.get_group('B')
+
+# ogear = oct_df.groupby('Column Height')
+# o_top = ogear.get_group('T')
+# o_bottom = ogear.get_group('B')
+
+jgear = june_df.groupby('Farmed or Wild')
+j_farm = jgear.get_group('F')
 j_wild = jgear.get_group('W')
-j_cage_filt = jgear.get_group('CF')
-j_net_filt = jgear.get_group('NF')
-j_wild_filt = jgear.get_group('WF')
 
-
-jugear = july_df.groupby('Gear Type')
-ju_cage = jugear.get_group('C')
-ju_net = jugear.get_group('N')
+jugear = july_df.groupby('Farmed or Wild')
+ju_farm = jugear.get_group('F')
 ju_wild = jugear.get_group('W')
-ju_cage_filt = jugear.get_group('CF')
-ju_net_filt = jugear.get_group('NF')
-ju_wild_filt = jugear.get_group('WF')
 
-agear = august_df.groupby('Gear Type')
-a_cage = agear.get_group('C')
-a_net = agear.get_group('N')
+agear = august_df.groupby('Farmed or Wild')
+a_farm = agear.get_group('F')
 a_wild = agear.get_group('W')
-a_cage_filt = agear.get_group('CF')
-a_net_filt = agear.get_group('NF')
-a_wild_filt = agear.get_group('WF')
 
-sgear = sept_df.groupby('Gear Type')
-s_cage = sgear.get_group('C')
-s_net = sgear.get_group('N')
+sgear = sept_df.groupby('Farmed or Wild')
+s_farm = sgear.get_group('F')
 s_wild = sgear.get_group('W')
-s_cage_filt = sgear.get_group('CF')
-s_net_filt = sgear.get_group('NF')
-s_wild_filt = sgear.get_group('WF')
 
-ogear = oct_df.groupby('Gear Type')
-o_cage = ogear.get_group('C')
-o_net = ogear.get_group('N')
+ogear = oct_df.groupby('Farmed or Wild')
+o_farm = ogear.get_group('F')
 o_wild = ogear.get_group('W')
-o_cage_filt = ogear.get_group('CF')
-o_net_filt = ogear.get_group('NF')
-o_wild_filt = ogear.get_group('WF')
-
 
 '''
 Box plots for d13C by month separated by gear type
@@ -179,6 +230,22 @@ Box plots for d13C by gear type separated by month
 
 #plt.show()
 
+fig = plt.figure(constrained_layout=True, figsize=(6, 6))
+subfigs = fig.subfigures(2, 1, wspace=0.01)
+
+subfigs[0].suptitle('Farmed')
+subfigs[0].add_subplot(111).boxplot([j_farm['d13C'], ju_farm['d13C'], a_farm['d13C'], s_farm['d13C'], o_farm['d13C']], labels=['June', 'July', 'August', 'September', 'October'])
+subfigs[0].axes[0].set_ylim(-21,-16)
+subfigs[0].axes[0].set_ylabel('d13C (‰)')
+
+subfigs[1].suptitle('Wild')
+subfigs[1].add_subplot(111).boxplot([j_wild['d13C'], ju_wild['d13C'], a_wild['d13C'], s_wild['d13C'], o_wild['d13C']], labels=['June', 'July', 'August', 'September', 'October'])
+subfigs[1].axes[0].set_ylim(-21,-16)
+subfigs[1].axes[0].set_ylabel('d13C (‰)')
+
+
+plt.show()
+
 '''
 Box plots for d15N by gear type separated by month
 '''
@@ -202,6 +269,21 @@ Box plots for d15N by gear type separated by month
 
 #plt.show()
 
+fig = plt.figure(constrained_layout=True, figsize=(6, 6))
+subfigs = fig.subfigures(2, 1, wspace=0.01)
+
+subfigs[0].suptitle('Farmed')
+subfigs[0].add_subplot(111).boxplot([j_farm['d15N'], ju_farm['d15N'], a_farm['d15N'], s_farm['d15N'], o_farm['d15N']], labels=['June', 'July', 'August', 'September', 'October'])
+subfigs[0].axes[0].set_ylim(3,12)
+subfigs[0].axes[0].set_ylabel('d15N (‰)')
+
+subfigs[1].suptitle('Wild')
+subfigs[1].add_subplot(111).boxplot([j_wild['d15N'], ju_wild['d15N'], a_wild['d15N'], s_wild['d15N'], o_wild['d15N']], labels=['June', 'July', 'August', 'September', 'October'])
+subfigs[1].axes[0].set_ylim(3,12)
+subfigs[1].axes[0].set_ylabel('d15N (‰)')
+
+plt.show()
+
 '''
 This shows a boxplot of C/N (molar) by gear type separated by month
 '''
@@ -224,6 +306,21 @@ This shows a boxplot of C/N (molar) by gear type separated by month
 # subfigs[2].axes[0].set_ylabel('C/N (Molar)')
 
 #plt.show()
+
+fig = plt.figure(constrained_layout=True, figsize=(6, 6))
+subfigs = fig.subfigures(2, 1, wspace=0.01)
+
+subfigs[0].suptitle('Farmed')
+subfigs[0].add_subplot(111).boxplot([j_farm['C/N (Molar)'], ju_farm['C/N (Molar)'], a_farm['C/N (Molar)'], s_farm['C/N (Molar)'], o_farm['C/N (Molar)']], labels=['June', 'July', 'August', 'September', 'October'])
+subfigs[0].axes[0].set_ylim(3,6)
+subfigs[0].axes[0].set_ylabel('C/N (Molar)')
+
+subfigs[1].suptitle('Wild')
+subfigs[1].add_subplot(111).boxplot([j_wild['C/N (Molar)'], ju_wild['C/N (Molar)'], a_wild['C/N (Molar)'], s_wild['C/N (Molar)'], o_wild['C/N (Molar)']], labels=['June', 'July', 'August', 'September', 'October'])
+subfigs[1].axes[0].set_ylim(3,6)
+subfigs[1].axes[0].set_ylabel('C/N (Molar)')
+
+plt.show()
 
 
 '''
@@ -249,6 +346,21 @@ This shows a boxplot of %N by gear type separated by month
 # subfigs[2].axes[0].set_ylabel('% N')
 
 # plt.show()
+
+fig = plt.figure(constrained_layout=True, figsize=(6, 6))
+subfigs = fig.subfigures(2, 1, wspace=0.01)
+
+subfigs[0].suptitle('Farmed')
+subfigs[0].add_subplot(111).boxplot([j_farm['% N'], ju_farm['% N'], a_farm['% N'], s_farm['% N'], o_farm['% N']], labels=['June', 'July', 'August', 'September', 'October'])
+subfigs[0].axes[0].set_ylim(7,14)
+subfigs[0].axes[0].set_ylabel('% N')
+
+subfigs[1].suptitle('Wild')
+subfigs[1].add_subplot(111).boxplot([j_wild['% N'], ju_wild['% N'], a_wild['% N'], s_wild['% N'], o_wild['% N']], labels=['June', 'July', 'August', 'September', 'October'])
+subfigs[1].axes[0].set_ylim(7,14)
+subfigs[1].axes[0].set_ylabel('% N')
+
+plt.show()
 
 '''
 Table of averages and standard deviations for d13C, d15N, and C/N (molar) by gear type my month
@@ -307,11 +419,9 @@ ax.axis('off')
 
 '''
 Table of the difference between the average d13C of samples by gear type and month and the average d13C of the corresponding filter samples
-'''
+Diet focused question, what is the difference between scallop and filter d15N and d13C values - does this indicate one trophic level increase?
 
-
-'''
-Something wrong with this
+But, need to fix the code for this table if this is something to focus on
 '''
 
 
@@ -409,6 +519,52 @@ Something wrong with this
 Bar chart of standard deviations for d13C, d15N, C/N (molar), and %N by month for gear types
 '''
 
+# barWidth = 0.2
+# fig = plt.subplots(figsize =(20, 8))
+
+# wild_d13C_sds = [round(j_wild['d13C'].std(),2), round(ju_wild['d13C'].std(),2), round(a_wild['d13C'].std(),2), round(s_wild['d13C'].std(),2), round(o_wild['d13C'].std(),2)]
+# wild_d15N_sds = [round(j_wild['d15N'].std(),2), round(ju_wild['d15N'].std(),2), round(a_wild['d15N'].std(),2), round(s_wild['d15N'].std(),2), round(o_wild['d15N'].std(),2)]
+# wild_CN_sds = [round(j_wild['C/N (Molar)'].std(),2), round(ju_wild['C/N (Molar)'].std(),2), round(a_wild['C/N (Molar)'].std(),2), round(s_wild['C/N (Molar)'].std(),2), round(o_wild['C/N (Molar)'].std(),2)]
+# wild_N_sds = [round(j_wild['% N'].std(),2), round(ju_wild['% N'].std(),2), round(a_wild['% N'].std(),2), round(s_wild['% N'].std(),2), round(o_wild['% N'].std(),2)]    
+
+# net_d13C_sds = [round(j_net['d13C'].std(),2), round(ju_net['d13C'].std(),2), round(a_net['d13C'].std(),2), round(s_net['d13C'].std(),2), round(o_net['d13C'].std(),2)]
+# net_d15N_sds = [round(j_net['d15N'].std(),2), round(ju_net['d15N'].std(),2), round(a_net['d15N'].std(),2), round(s_net['d15N'].std(),2), round(o_net['d15N'].std(),2)]
+# net_CN_sds = [round(j_net['C/N (Molar)'].std(),2), round(ju_net['C/N (Molar)'].std(),2), round(a_net['C/N (Molar)'].std(),2), round(s_net['C/N (Molar)'].std(),2), round(o_net['C/N (Molar)'].std(),2)]
+# net_N_sds = [round(j_net['% N'].std(),2), round(ju_net['% N'].std(),2), round(a_net['% N'].std(),2), round(s_net['% N'].std(),2), round(o_net['% N'].std(),2)]  
+
+# cage_d13C_sds = [round(j_cage['d13C'].std(),2), round(ju_cage['d13C'].std(),2), round(a_cage['d13C'].std(),2), round(s_cage['d13C'].std(),2), round(o_cage['d13C'].std(),2)]
+# cage_d15N_sds = [round(j_cage['d15N'].std(),2), round(ju_cage['d15N'].std(),2), round(a_cage['d15N'].std(),2), round(s_cage['d15N'].std(),2), round(o_cage['d15N'].std(),2)]
+# cage_CN_sds = [round(j_cage['C/N (Molar)'].std(),2), round(ju_cage['C/N (Molar)'].std(),2), round(a_cage['C/N (Molar)'].std(),2), round(s_cage['C/N (Molar)'].std(),2), round(o_cage['C/N (Molar)'].std(),2)]
+# cage_N_sds = [round(j_cage['% N'].std(),2), round(ju_cage['% N'].std(),2), round(a_cage['% N'].std(),2), round(s_cage['% N'].std(),2), round(o_cage['% N'].std(),2)]    
+
+
+# br1 = np.arange(len(wild_d13C_sds)) 
+# br2 = [x + barWidth for x in br1] 
+# br3 = [x + barWidth for x in br2] 
+# br4 = [x + barWidth for x in br3] 
+# br5 = [x + barWidth for x in br4]
+
+# '''
+# Change the next four lines to plot the gear type you want
+# '''
+
+# plt.bar(br1, cage_d13C_sds, color='b', width=0.2, label = 'd13C SD')
+# plt.bar(br2, cage_d15N_sds, color='r', width=0.2, label = 'd15N SD')
+# plt.bar(br3, cage_CN_sds, color='g', width=0.2, label = 'C/N (Molar) SD')
+# plt.bar(br4, cage_N_sds, color='y', width=0.2, label = '%N SD')
+
+# catwidth = 0.3
+
+# plt.ylim(0,2.5)
+# plt.xticks([r + catwidth for r in range(len(wild_d13C_sds))], 
+#         ['June', 'July', 'August', 'Sept', 'Oct'])
+
+# plt.legend()
+# plt.show()
+
+'''
+Bar chart showing spread of data for farmed vs wild
+'''
 barWidth = 0.2
 fig = plt.subplots(figsize =(20, 8))
 
@@ -417,15 +573,11 @@ wild_d15N_sds = [round(j_wild['d15N'].std(),2), round(ju_wild['d15N'].std(),2), 
 wild_CN_sds = [round(j_wild['C/N (Molar)'].std(),2), round(ju_wild['C/N (Molar)'].std(),2), round(a_wild['C/N (Molar)'].std(),2), round(s_wild['C/N (Molar)'].std(),2), round(o_wild['C/N (Molar)'].std(),2)]
 wild_N_sds = [round(j_wild['% N'].std(),2), round(ju_wild['% N'].std(),2), round(a_wild['% N'].std(),2), round(s_wild['% N'].std(),2), round(o_wild['% N'].std(),2)]    
 
-net_d13C_sds = [round(j_net['d13C'].std(),2), round(ju_net['d13C'].std(),2), round(a_net['d13C'].std(),2), round(s_net['d13C'].std(),2), round(o_net['d13C'].std(),2)]
-net_d15N_sds = [round(j_net['d15N'].std(),2), round(ju_net['d15N'].std(),2), round(a_net['d15N'].std(),2), round(s_net['d15N'].std(),2), round(o_net['d15N'].std(),2)]
-net_CN_sds = [round(j_net['C/N (Molar)'].std(),2), round(ju_net['C/N (Molar)'].std(),2), round(a_net['C/N (Molar)'].std(),2), round(s_net['C/N (Molar)'].std(),2), round(o_net['C/N (Molar)'].std(),2)]
-net_N_sds = [round(j_net['% N'].std(),2), round(ju_net['% N'].std(),2), round(a_net['% N'].std(),2), round(s_net['% N'].std(),2), round(o_net['% N'].std(),2)]  
+farm_d13C_sds = [round(j_farm['d13C'].std(),2), round(ju_farm['d13C'].std(),2), round(a_farm['d13C'].std(),2), round(s_farm['d13C'].std(),2), round(o_farm['d13C'].std(),2)]
+farm_d15N_sds = [round(j_farm['d15N'].std(),2), round(ju_farm['d15N'].std(),2), round(a_farm['d15N'].std(),2), round(s_farm['d15N'].std(),2), round(o_farm['d15N'].std(),2)]
+farm_CN_sds = [round(j_farm['C/N (Molar)'].std(),2), round(ju_farm['C/N (Molar)'].std(),2), round(a_farm['C/N (Molar)'].std(),2), round(s_farm['C/N (Molar)'].std(),2), round(o_farm['C/N (Molar)'].std(),2)]
+farm_N_sds = [round(j_farm['% N'].std(),2), round(ju_farm['% N'].std(),2), round(a_farm['% N'].std(),2), round(s_farm['% N'].std(),2), round(o_farm['% N'].std(),2)]  
 
-cage_d13C_sds = [round(j_cage['d13C'].std(),2), round(ju_cage['d13C'].std(),2), round(a_cage['d13C'].std(),2), round(s_cage['d13C'].std(),2), round(o_cage['d13C'].std(),2)]
-cage_d15N_sds = [round(j_cage['d15N'].std(),2), round(ju_cage['d15N'].std(),2), round(a_cage['d15N'].std(),2), round(s_cage['d15N'].std(),2), round(o_cage['d15N'].std(),2)]
-cage_CN_sds = [round(j_cage['C/N (Molar)'].std(),2), round(ju_cage['C/N (Molar)'].std(),2), round(a_cage['C/N (Molar)'].std(),2), round(s_cage['C/N (Molar)'].std(),2), round(o_cage['C/N (Molar)'].std(),2)]
-cage_N_sds = [round(j_cage['% N'].std(),2), round(ju_cage['% N'].std(),2), round(a_cage['% N'].std(),2), round(s_cage['% N'].std(),2), round(o_cage['% N'].std(),2)]    
 
 
 br1 = np.arange(len(wild_d13C_sds)) 
@@ -438,10 +590,10 @@ br5 = [x + barWidth for x in br4]
 Change the next four lines to plot the gear type you want
 '''
 
-plt.bar(br1, cage_d13C_sds, color='b', width=0.2, label = 'd13C SD')
-plt.bar(br2, cage_d15N_sds, color='r', width=0.2, label = 'd15N SD')
-plt.bar(br3, cage_CN_sds, color='g', width=0.2, label = 'C/N (Molar) SD')
-plt.bar(br4, cage_N_sds, color='y', width=0.2, label = '%N SD')
+plt.bar(br1, farm_d13C_sds, color='b', width=0.2, label = 'd13C SD')
+plt.bar(br2, farm_d15N_sds, color='r', width=0.2, label = 'd15N SD')
+plt.bar(br3, farm_CN_sds, color='g', width=0.2, label = 'C/N (Molar) SD')
+plt.bar(br4, farm_N_sds, color='y', width=0.2, label = '%N SD')
 
 catwidth = 0.3
 
