@@ -2,9 +2,19 @@
     "cSpell.words": [
         "anova",
         "arange",
+        "cmap",
+        "figsize",
         "levene",
         "Levene's",
         "levenes",
-        "umoles"
+        "linestyle",
+        "pvalue",
+        "umoles",
+        "usecols",
+        "viridis",
+        "xlabel",
+        "xlim",
+        "ylabel",
+        "ylim"
     ]
 }
