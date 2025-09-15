@@ -14,7 +14,7 @@ from numpy import arange
 from matplotlib.pyplot import subplots, savefig
 from scipy.stats import levene
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, FactorAnalysis
 
 figures = Path(__file__).parent / "figures"
 raw_data = Path(__file__).parent / "data" / "2023IsotopeDataReport-cleanedinexcel.csv"
@@ -286,3 +286,31 @@ if __name__ == "__main__":
         ax.set_ylim(-4, 4)
 
     fig.savefig(f"{figures}/pca_score_plot.png")
+
+    '''
+    Factor Analysis
+    Variables used: NITROGEN_PERCENTAGE, CARBON_FRACTIONATION, CARBON_PERCENTAGE, NITROGEN_FRACTIONATION, MOLAR_RATIO 
+    '''
+    data_muscle = quantize_categorical_column(data_muscle, Dimension.GEAR.value, {"C": 1, "N": 2, "W": 3})
+    data_muscle = quantize_categorical_column(data_muscle, Dimension.SEX.value, {"F": 1, "M": 2})
+    data_muscle = quantize_categorical_column(data_muscle, Dimension.TISSUE.value, {"G": 1, "M": 2})
+    
+    df_FA = data_muscle[[Dimension.NITROGEN_PERCENTAGE.value,
+            Dimension.CARBON_FRACTIONATION.value,
+            Dimension.CARBON_PERCENTAGE.value,
+            Dimension.NITROGEN_FRACTIONATION.value,
+            Dimension.MOLAR_RATIO.value]]
+    fact_analysis_all = FactorAnalysis(n_components=2)
+    factors = fact_analysis_all.fit_transform(df_FA)
+
+    fig, ax = subplots(figsize=(8, 6))
+    series = data_muscle[Dimension.GEAR.value]
+    for _ in series:
+        ax.scatter(factors[:,0], factors[:,1], c = series, cmap = 'viridis')
+        ax.set_title("FA Plot: F1 vs F2")
+        ax.set_xlim(-4, 4)
+        ax.set_ylim(-4, 4)
+    fig.savefig(f"{figures}/fa_gear_muscle_plot.png")
+   
+
+
