@@ -201,7 +201,8 @@ results = kruskal(df_muscle_farm['d15N'], df_muscle_wild['d15N'])
 print(results)
 
 
-df = df.drop(columns = ['Analysis', 'Sample ID', 'Date Run'])
+df = df.drop(columns = ['Analysis', 'Sample ID', 'Date Run', 'Number in gear type', 'Mass (mg)', 'N (umoles)', 'C (umoles)'])
+
 # print(df.isna().sum())
 df = pd.DataFrame(df)
 
@@ -213,8 +214,8 @@ explained_variance = pca.explained_variance_ratio_
 loadings = pca.components_.T * np.sqrt(explained_variance) #need to double check this
 
 
-pairplot_df = df[['% N', 'N (umoles)', 'd15N', '%C', 'C (umoles)', 'd13C','C/N (Molar)']]
-pairplot = sns.pairplot(df[['% N', 'N (umoles)', 'd15N', '%C', 'C (umoles)', 'd13C','C/N (Molar)', 'Sex']], hue='Sex')
+pairplot_df = df[['% N', 'd15N', '%C', 'd13C','C/N (Molar)']]
+pairplot = sns.pairplot(df[['% N', 'd15N', '%C', 'd13C','C/N (Molar)', 'Sex']], hue='Sex')
 sns.color_palette("hls", 8)
 plt.savefig(figures / "pairplot-muscle-collectiondate.png")
 
@@ -227,23 +228,23 @@ comp_df.to_csv('/Users/adelejordan/Downloads/Hurricane/Isotopes/pca_components4.
 loadings_df = pd.DataFrame(pca.components_.T * np.sqrt(explained_variance), columns = list(df.columns))
 loadings_df.to_csv('/Users/adelejordan/Downloads/Hurricane/Isotopes/pca_loadings4.csv')
 
-# summary = [pca.explained_variance_.round(2), pca.explained_variance_ratio_.round(2), pca.explained_variance_ratio_.cumsum().round(2)
-# ]
+summary = [pca.explained_variance_.round(2), pca.explained_variance_ratio_.round(2), pca.explained_variance_ratio_.cumsum().round(2)
+]
 
 
 fig, ax = plt.subplots(figsize=(8, 4)) 
 ax.axis('off')
 
-loadings_table = ax.table(cellText = loadings.round(2),
-                 colLabels = df.columns,
-                 rowLabels = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5', 'PC6', 'PC7', 'PC8', 'PC9', 'PC10', 'PC11', 'PC12', 'PC13', 'PC14', 'PC15'],
+loadings_table = ax.table(cellText = summary,
+                 colLabels = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5', 'PC6', 'PC7', 'PC8', 'PC9', 'PC10', 'PC11', 'PC12', 'PC13'],
+                 rowLabels = ['Explained Var', 'Explained Var Ratio', 'Cum Exp Var Ratio'],
                  cellLoc = 'center',
                  rowLoc = 'center',
                  loc = 'center')
 loadings_table.auto_set_font_size(False)
 loadings_table.set_fontsize(8) 
 
-# plt.show()
+plt.show()
 
 '''
 Let's make a scree plot to visualize the proportion of variance explained by each principal component
