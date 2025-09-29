@@ -10,11 +10,15 @@ from enum import Enum
 from pandas import DataFrame, read_csv, to_datetime, set_option
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
-from numpy import arange
+from numpy import arange, sqrt
 from matplotlib.pyplot import subplots, savefig
 from scipy.stats import levene
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA, FactorAnalysis
+from matplotlib import patches as mpatches
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 
 figures = Path(__file__).parent / "figures"
 raw_data = Path(__file__).parent / "data" / "2023IsotopeDataReport-cleanedinexcel.csv"
@@ -38,6 +42,8 @@ class Dimension(Enum):
     TISSUE = "Tissue Type (Gonad or Muscle)"
     SEX = "Sex"
     DATE_RUN = "Date Run"
+    FARM_VS_WILD = "Farm vs Wild"  # New column for farm vs wild categorization, include?
+    DEPTH = "Depth" # New column for depth categorization, include?
 
 
 # pylint: disable=redefined-outer-name
@@ -129,6 +135,21 @@ def quantize_categorical_column(
     non_zero_mask = df[column_name] != 0
     return df[non_zero_mask]
 
+def return_column_to_categorical(
+    df: DataFrame, column_name: str, categories: Dict[int, str]
+) -> DataFrame:
+    '''
+    Replace integers with strings to return a categorical column of a DataFrame. 
+
+    This is for the purpose of making plots more readable, 
+    and should be used AFTER statistical analysis.
+
+    This process changes the original dataframe.
+    '''
+    for value in df[column_name]:
+        replace = categories.get(value, 0)
+        df[column_name] = df[column_name].replace(value, replace)
+    return df
 
 # When file is run directly, this block will execute.
 # The reason to do this is so that as the methods are wrapped as functions
@@ -177,13 +198,13 @@ if __name__ == "__main__":
     fig, ax = subplots(figsize=(8, 6))
     # Confirm that the data is normally distributed
     for dim in [
-        Dimension.NITROGEN_PERCENTAGE.value,
-        Dimension.CARBON_FRACTIONATION.value,
         Dimension.NITROGEN_FRACTIONATION.value,
+        Dimension.CARBON_FRACTIONATION.value,
         Dimension.MOLAR_RATIO.value,
     ]:
         data_muscle[dim].hist(ax=ax, label=dim)
     ax.legend()
+    ax.grid(False)
     savefig(f"{figures}/muscle_tissue_histograms.png")
 
     mask = tissue[Dimension.TISSUE.value] == "M"
@@ -200,7 +221,6 @@ if __name__ == "__main__":
     for name, tissue in {"Gonad": data_gonad, "Muscle": data_muscle}.items():
         print(f"\nTissue: {name}")
         for dim in [
-            Dimension.NITROGEN_PERCENTAGE.value,
             Dimension.CARBON_FRACTIONATION.value,
             Dimension.NITROGEN_FRACTIONATION.value,
             Dimension.MOLAR_RATIO.value,
@@ -211,24 +231,44 @@ if __name__ == "__main__":
             print("Month:", a.statistic, "P-value:", a.pvalue, "(Passed)" if a.pvalue > 0.05 else "(Failed)")
             print("Gear:", b.statistic, "P-value:", b.pvalue, "(Passed)" if b.pvalue > 0.05 else "(Failed)")
 
-    # Since ANOVA assumptions are not met, try PCA
+    '''
+    Since ANOVA assumptions are not met, try PCA
+    Ensure data are quantized properly
+    '''
+
     df = quantize_categorical_column(df, Dimension.GEAR.value, {"C": 1, "N": 2, "W": 3})
     df = quantize_categorical_column(df, Dimension.SEX.value, {"F": 1, "M": 2})
     df = quantize_categorical_column(df, Dimension.TISSUE.value, {"G": 1, "M": 2})
+    
+    pca_df = df[[ 
+            Dimension.NITROGEN_FRACTIONATION.value,
+            Dimension.CARBON_FRACTIONATION.value,
+            Dimension.MOLAR_RATIO.value,
+    ]]
 
     std_scaler = StandardScaler()
-    scaled_df = std_scaler.fit_transform(df)
-    pca = PCA(n_components=None)
+    scaled_df = std_scaler.fit_transform(pca_df)
+    pca = PCA(n_components=2)
+    
     components = pca.fit_transform(scaled_df)
-    comp_df = DataFrame(pca.components_, columns=list(df.columns))
-
-    comp_df.to_csv(f"{figures}/pca_components2.csv")
     explained_variance = pca.explained_variance_ratio_
-    # loadings = pca.components_.T * np.sqrt(explained_variances)
+    loadings = pca.components_.T * sqrt(explained_variance)
+
+    '''
+    Factor Analysis
+    Variables used: CARBON_FRACTIONATION, NITROGEN_FRACTIONATION, MOLAR_RATIO, COLLECTION_DATE
+    '''
+
+    FA_df = df[[ Dimension.CARBON_FRACTIONATION.value,
+            Dimension.NITROGEN_FRACTIONATION.value,
+            Dimension.MOLAR_RATIO.value,
+            Dimension.COLLECTION_DATE.value]]
+    fact_analysis_all = FactorAnalysis(n_components=2)
+    factors = fact_analysis_all.fit_transform(FA_df)
 
     # Make a scree plot to visualize the proportion of variance
     # explained by each principal component
-    fig, ax = subplots(figsize=(8, 6))
+    fig, ax = subplots(figsize=(4, 2))
     pc_numbers = arange(len(explained_variance)) + 1
     ax.plot(pc_numbers, explained_variance, marker="o", linestyle="-")
     ax.set_title("Scree Plot")
@@ -237,7 +277,7 @@ if __name__ == "__main__":
     ax.grid(True)
     fig.savefig(f"{figures}/pca_scree_plot.png")
 
-    fig, ax = subplots(figsize=(40, 10))
+    fig, ax = subplots(figsize=(10, 3))
     ax.axis("off")
 
     # Make a table to summarize the PCA results
@@ -255,18 +295,7 @@ if __name__ == "__main__":
         cellText=summary,
         colLabels=[
             "PC1",
-            "PC2",
-            "PC3",
-            "PC4",
-            "PC5",
-            "PC6",
-            "PC7",
-            "PC8",
-            "PC9",
-            "PC10",
-            "PC11",
-            "PC12",
-            "PC13",
+            "PC2"
         ],
         rowLabels=["Explained Var", "Explained Var Ratio", "Cum Explained Var Ratio"],
         cellLoc="center",
@@ -277,40 +306,94 @@ if __name__ == "__main__":
 
     # Look at score plots to visualize how samples relate to each
     # other in the space defined by the principal components
-    fig, ax = subplots(figsize=(10, 8))
-    series = df[Dimension.COLLECTION_DATE.value]  # Dimension.GEAR.value
-    for _ in series:
-        ax.scatter(components[:, 0], components[:, 1], c=series, cmap="viridis")
-        ax.set_title("PCA Score Plot: PC1 vs PC2")
-        ax.set_xlim(-4, 4)
-        ax.set_ylim(-4, 4)
-
-    fig.savefig(f"{figures}/pca_score_plot.png")
 
     '''
-    Factor Analysis
-    Variables used: NITROGEN_PERCENTAGE, CARBON_FRACTIONATION, CARBON_PERCENTAGE, NITROGEN_FRACTIONATION, MOLAR_RATIO 
+    matplotlib scatter does not let you use different marker styles
     '''
-    data_muscle = quantize_categorical_column(data_muscle, Dimension.GEAR.value, {"C": 1, "N": 2, "W": 3})
-    data_muscle = quantize_categorical_column(data_muscle, Dimension.SEX.value, {"F": 1, "M": 2})
-    data_muscle = quantize_categorical_column(data_muscle, Dimension.TISSUE.value, {"G": 1, "M": 2})
+    # fig, ax = subplots(figsize=(10, 8))
+    # series = df[Dimension.GEAR.value]  # Dimension.GEAR.value
+    # markers = df[Dimension.FARM_VS_WILD.value] #FARM VS WILD
+    # for _ in zip(series, markers):
+    #         ax.scatter(components[:, 0], 
+    #                    components[:, 1], 
+    #                    c=series, 
+    #                    cmap="tab10", 
+    #                    marker=markers)
+    #         ax.set_title("PCA Score Plot: PC1 vs PC2")
+    #         ax.set_xlim(-4, 4)
+    #         ax.set_ylim(-4, 4)
+    # fig.legend(handles=[
+    # mpatches.Patch(color='tab:blue', label='Cage'),
+    # mpatches.Patch(color='tab:red', label='Net'),
+    # mpatches.Patch(color='tab:cyan', label='Wild')],
+    # bbox_to_anchor=(1.05, 1))
+    # fig.savefig(f"{figures}/all_tissue_pca_score_plot_gear.png")
     
-    df_FA = data_muscle[[Dimension.NITROGEN_PERCENTAGE.value,
-            Dimension.CARBON_FRACTIONATION.value,
-            Dimension.CARBON_PERCENTAGE.value,
-            Dimension.NITROGEN_FRACTIONATION.value,
-            Dimension.MOLAR_RATIO.value]]
-    fact_analysis_all = FactorAnalysis(n_components=2)
-    factors = fact_analysis_all.fit_transform(df_FA)
+    #returning categorical columns to strings for better readability in plot legends
+    df = return_column_to_categorical(df, Dimension.GEAR.value, {1: 'Farm', 2: 'Farm', 3: 'Wild'}) #NK, should I make new columns for farm vs wild and depth?
+    df = return_column_to_categorical(df, Dimension.SEX.value, {1: 'Female', 2: 'Male'})
+    df = return_column_to_categorical(df, Dimension.TISSUE.value, {1: 'Gonad', 2: 'Muscle'})
+    df = return_column_to_categorical(df, Dimension.COLLECTION_DATE.value, {6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October'}) 
 
-    fig, ax = subplots(figsize=(8, 6))
-    series = data_muscle[Dimension.GEAR.value]
-    for _ in series:
-        ax.scatter(factors[:,0], factors[:,1], c = series, cmap = 'viridis')
-        ax.set_title("FA Plot: F1 vs F2")
-        ax.set_xlim(-4, 4)
-        ax.set_ylim(-4, 4)
-    fig.savefig(f"{figures}/fa_gear_muscle_plot.png")
+    # Alternative PCA score plot using seaborn to use different markers
+    fig, ax = subplots(figsize=(10, 8))
+    sns.scatterplot(
+        x=components[:, 0],
+        y=components[:, 1],
+        hue=df[Dimension.TISSUE.value],
+        style=df[Dimension.SEX.value],
+        palette='bright', 
+        legend = 'full', #depending on how you want the legend to look, use this or replace with False and plt.legend below
+        s=100,
+    )
+    plt.xlim(-4,4)
+    plt.ylim(-4,4)
+    plt.xlabel("Principal Component 1")
+    plt.ylabel("Principal Component 2")
+    # plt.legend(handles=[
+    #     mpatches.Patch(color='black', label='Wild'),
+    #     mpatches.Patch(color='red', label='Farmed')],
+    #     loc = 'upper right')
+    fig.savefig(f"{figures}/pca_score_plot_tissue_sex.png")
+
+    '''
+    Factor Analysis Plots
+    Variables used: CARBON_FRACTIONATION, NITROGEN_FRACTIONATION, MOLAR_RATIO, COLLECTION_DATE
+    
+    Look at plots to visualize how samples relate to each
+    other in the space defined by the factors
+    '''
+
+    # matplotlib scatter does not let you use different marker styles
+    # fig, ax = subplots(figsize=(8, 6))
+    # series = df[Dimension.GEAR.value]
+    # for _ in series:
+    #     ax.scatter(factors[:,0], factors[:,1], c = series, cmap = 'Paired')
+    #     ax.set_title("FA Plot: F1 vs F2")
+    #     ax.set_xlim(-2, 2)
+    #     ax.set_ylim(-2, 2)
+
+
+    #FAMD plot using seaborn to use different markers
+    fig, ax = subplots(figsize=(10, 8))
+    sns.scatterplot(
+        x=factors[:, 0],
+        y=factors[:, 1],
+        hue=df[Dimension.COLLECTION_DATE.value],
+        style=df[Dimension.TISSUE.value],
+        palette='bright', 
+        legend = 'auto',
+        s=100,
+    )
+    plt.xlim(-3,3)
+    plt.ylim(-3,3)
+    plt.xlabel("Factor 1")
+    plt.ylabel("Factor 2")
+    # plt.legend(handles=[
+    #     mpatches.Patch(color='black', label='Wild'),
+    #     mpatches.Patch(color='red', label='Farmed')],
+    #     loc = 'upper right')
+    fig.savefig(f"{figures}/fa_date_plot.png")
    
 
 
