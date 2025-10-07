@@ -1,107 +1,161 @@
 from pathlib import Path
 import pandas as pd
 import datetime as dt
+import matplotlib.pyplot as plt
+from matplotlib.pyplot import subplots
+from matplotlib import patches as mpatches
+import seaborn as sns
+from enum import Enum
+from matplotlib.dates import DateFormatter
 
 
 figures = Path(__file__).parent / "figures"
 rawdata = Path(__file__).parent / "data" / "2023_2022_GSI_Environmental_Data_2023_Temperature_and_Light.csv"
 
-data = pd.read_csv(rawdata, header = 0)
+class Dimension(Enum):
 
-'''
-THIS IS WRONG BECAUSE IT COUNTS HOURS, NOT DAYS
-FIND THE MAX FOR EACH DAY, THEN COUNT THE DAYS
-'''
+    DATE = "Date-Time (EDT)"
+    NET_TOP_TEMP = "Net Top, Temperature (°F)"
+    CAGE_TEMP = "Cage, Temperature (°F)"
+    CAGE_LUM = "Cage, Light (lum)"
+    NET_BOTTOM_TEMP = "Net Bottom, Temperature (°F)"
+    NET_BOTTOM_LUM = "Net Bottom, Light (lum)"
+    WILD_TEMP = "Wild, Temperature (°F)"
 
-data['Date-Time (EDT)'] = pd.to_datetime(data['Date-Time (EDT)'], format = '%m/%d/%y %H:%M')
+if __name__ == "__main__":
+    df = pd.read_csv(
+        rawdata,
+        header=0,
+        usecols=[
+                Dimension.DATE.value, 
+                Dimension.NET_TOP_TEMP.value, 
+                Dimension.CAGE_TEMP.value, 
+                Dimension.CAGE_LUM.value, 
+                Dimension.NET_BOTTOM_TEMP.value, 
+                Dimension.NET_BOTTOM_LUM.value,
+                Dimension.WILD_TEMP.value])
+    pd.to_datetime(df[Dimension.DATE.value],format = '%m/%d/%y %H:%M')
+    df_temp = df[[Dimension.DATE.value, Dimension.NET_BOTTOM_TEMP.value,Dimension.CAGE_TEMP.value,Dimension.WILD_TEMP.value]]
+    df_temp = df_temp.melt(id_vars = Dimension.DATE.value, var_name='Gear', value_name='Temp')
+    custom_color = ('black', 'blue', 'red')
+    fig, ax = subplots(figsize=(10, 8))
+    sns.lineplot(
+        data = df_temp,
+        x = Dimension.DATE.value,
+        y = 'Temp',
+        hue = 'Gear',
+        palette=custom_color,
+        legend = False, #depending on how you want the legend to look, use this or replace with False and plt.legend below
+    )
+    plt.xticks((df_temp[Dimension.DATE.value].iloc[1],
+                df_temp[Dimension.DATE.value].iloc[673],
+                df_temp[Dimension.DATE.value].iloc[1441],
+                df_temp[Dimension.DATE.value].iloc[2209],
+                df_temp[Dimension.DATE.value].iloc[2857]),
+                rotation=45, 
+                ha='right')
+    plt.xlabel("Date")
+    plt.ylabel("Temperature (F)")
+    plt.legend(handles=[
+        mpatches.Patch(color='black', label='Nets'),
+        mpatches.Patch(color='blue', label='Cages'),
+        mpatches.Patch(color= 'red', label = 'Wild')],
+        loc = 'upper right')
+    fig.savefig(f"{figures}/temp_series.png")
+    
 
-'''
-For this data:
-Groups:
-    6/15/23 [0:13]
-    6/16/23 - 7/13/23 [14:687]
-    7/14/23 - 8/14/23 [689:1455]
-    8/15/23 - 9/15/23 [1456:2223]
-    9/16/23 - 10/12/23 [2224:2864]
-'''
+july_cage = round(df[Dimension.CAGE_TEMP.value].iloc[673-384:673].mean(), 2)
+aug_cage = round(df[Dimension.CAGE_TEMP.value].iloc[1057:1441].mean(), 2)
+sept_cage = round(df[Dimension.CAGE_TEMP.value].iloc[2209-384:2209].mean(), 2)
+oct_cage = round(df[Dimension.CAGE_TEMP.value].iloc[2857-384:2857].mean(), 2)
 
-degree_day = 53.6
+july_net = round(df[Dimension.NET_BOTTOM_TEMP.value].iloc[673-384:673].mean(), 2)
+aug_net = round(df[Dimension.NET_BOTTOM_TEMP.value].iloc[1057:1441].mean(), 2)
+sept_net = round(df[Dimension.NET_BOTTOM_TEMP.value].iloc[2209-384:2209].mean(), 2)
+oct_net = round(df[Dimension.NET_BOTTOM_TEMP.value].iloc[2857-384:2857].mean(), 2)
 
-june_surface_hour_count = 0
-for x in range(len(data['Date-Time (EDT)'][0:13])):
-    if data['Net Top, Temperature (°F)'][x] > degree_day:
-        june_surface_hour_count += 1
-    else: 
-        pass
-
-june_bottom_hour_count = 0
-for x in range(len(data['Date-Time (EDT)'][0:13])):
-    if data['Cage, Temperature (°F)'][x] > degree_day:
-        june_bottom_hour_count += 1
-    else: 
-        pass
-
-july_surface_hour_count = 0
-for x in range(len(data['Date-Time (EDT)'][14:687])):
-    if data['Net Top, Temperature (°F)'][x] > degree_day:
-        july_surface_hour_count += 1
-    else: 
-        pass
-
-july_bottom_hour_count = 0
-for x in range(len(data['Date-Time (EDT)'][14:687])):
-    if data['Cage, Temperature (°F)'][x] > degree_day:
-        july_bottom_hour_count += 1
-    else: 
-        pass
-
-aug_surface_hour_count = 0
-for x in range(len(data['Date-Time (EDT)'][689:1455])):
-    if data['Net Top, Temperature (°F)'][x] > degree_day:
-        aug_surface_hour_count += 1
-    else: 
-        pass
-
-aug_bottom_hour_count = 0
-for x in range(len(data['Date-Time (EDT)'][689:1455])):
-    if data['Cage, Temperature (°F)'][x] > degree_day:
-        aug_bottom_hour_count += 1
-    else: 
-        pass
-
-sept_surface_hour_count = 0
-for x in range(len(data['Date-Time (EDT)'][1456:2223])):
-    if data['Net Top, Temperature (°F)'][x] > degree_day:
-        sept_surface_hour_count += 1
-    else: 
-        pass
-
-sept_bottom_hour_count = 0
-for x in range(len(data['Date-Time (EDT)'][1456:2223])):
-    if data['Cage, Temperature (°F)'][x] > degree_day:
-        sept_bottom_hour_count += 1
-    else: 
-        pass
-
-oct_surface_hour_count = 0
-for x in range(len(data['Date-Time (EDT)'][2224:2864])):
-    if data['Net Top, Temperature (°F)'][x] > degree_day:
-        oct_surface_hour_count += 1
-    else: 
-        pass
-
-oct_bottom_hour_count = 0
-for x in range(len(data['Date-Time (EDT)'][2224:2864])):
-    if data['Cage, Temperature (°F)'][x] > degree_day:
-        oct_bottom_hour_count += 1
-    else: 
-        pass
+july_wild = round(df[Dimension.WILD_TEMP.value].iloc[673-384:673].mean(), 2)
+aug_wild = round(df[Dimension.WILD_TEMP.value].iloc[1057:1441].mean(), 2)
+sept_wild = round(df[Dimension.WILD_TEMP.value].iloc[2209-384:2209].mean(), 2)
+oct_wild = round(df[Dimension.WILD_TEMP.value].iloc[2857-384:2857].mean(), 2)
 
 
-temp_data = {
-    'Month': ['June', 'July', 'August', 'September', 'October'],
-    'Surface Degree Hours': [june_surface_hour_count, july_surface_hour_count, aug_surface_hour_count, sept_surface_hour_count, oct_surface_hour_count],
-    'Bottom Degree Hours': [june_bottom_hour_count, july_bottom_hour_count, aug_bottom_hour_count, sept_bottom_hour_count, oct_bottom_hour_count]
-}
 
-print(temp_data)
+summary = [
+        [july_net, aug_net, sept_net, oct_net],
+        [july_cage, aug_cage, sept_cage, oct_cage],
+        [july_wild, aug_wild, sept_wild, oct_wild],
+    ]
+    
+fig, ax = plt.subplots()
+ax.axis('off')
+ax.table(cellText=summary,
+                 colLabels= ['July', 'August', 'Sept', 'Oct'],
+                 rowLabels = ['Nets', 'Cages', 'Wild'],
+                 cellLoc = 'center',
+                 loc='center')
+
+plt.savefig(figures / "temp_avg.png")
+    
+degree_hour = 55.4
+july_cage_count = 0
+july_net_count = 0 
+july_wild_count = 0
+aug_cage_count = 0
+aug_net_count = 0 
+aug_wild_count = 0
+sept_cage_count = 0
+sept_net_count = 0 
+sept_wild_count = 0
+oct_cage_count = 0
+oct_net_count = 0 
+oct_wild_count = 0
+
+for i in range(289,673):
+    if df[Dimension.CAGE_TEMP.value][i] > degree_hour:
+        july_cage_count = july_cage_count + 1
+    if df[Dimension.NET_BOTTOM_TEMP.value][i] > degree_hour:
+        july_net_count = july_net_count + 1
+    if df[Dimension.WILD_TEMP.value][i] > degree_hour:
+        july_wild_count = july_wild_count + 1
+
+for i in range(1057,1441):
+    if df[Dimension.CAGE_TEMP.value][i] > degree_hour:
+        aug_cage_count = aug_cage_count + 1
+    if df[Dimension.NET_BOTTOM_TEMP.value][i] > degree_hour:
+        aug_net_count = aug_net_count + 1
+    if df[Dimension.WILD_TEMP.value][i] > degree_hour:
+        aug_wild_count = aug_wild_count + 1
+
+for i in range(1825,2209):
+    if df[Dimension.CAGE_TEMP.value][i] > degree_hour:
+        sept_cage_count = sept_cage_count + 1
+    if df[Dimension.NET_BOTTOM_TEMP.value][i] > degree_hour:
+        sept_net_count = sept_net_count + 1
+    if df[Dimension.WILD_TEMP.value][i] > degree_hour:
+        sept_wild_count = sept_wild_count + 1
+
+for i in range(2473,2857):
+    if df[Dimension.CAGE_TEMP.value][i] > degree_hour:
+        oct_cage_count = oct_cage_count + 1
+    if df[Dimension.NET_BOTTOM_TEMP.value][i] > degree_hour:
+        oct_net_count = oct_net_count + 1
+    if df[Dimension.WILD_TEMP.value][i] > degree_hour:
+        oct_wild_count = oct_wild_count + 1
+
+
+summary = [
+        [july_net_count, aug_net_count, sept_net_count, oct_net_count],
+        [july_cage_count, aug_cage_count, sept_cage_count, oct_cage_count],
+        [july_wild_count, aug_wild_count, sept_wild_count, oct_wild_count],
+    ]
+    
+fig, ax = plt.subplots()
+ax.axis('off')
+ax.table(cellText=summary,
+                 colLabels= ['July', 'August', 'Sept', 'Oct'],
+                 rowLabels = ['Nets', 'Cages', 'Wild'],
+                 cellLoc = 'center',
+                 loc='center')
+
+plt.savefig(figures / "temp_degreehours.png")

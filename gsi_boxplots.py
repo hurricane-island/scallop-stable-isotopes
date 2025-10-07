@@ -79,43 +79,97 @@ if __name__ == "__main__":
     oct_farm = farm[farm[Dimension.COLLECTION_DATE.value] == 10]
 
     # Boxplot design
-    box_properties_1 = dict(facecolor = 'white', color='black', linewidth=1)
-    median_properties_1 = dict(color='black', linewidth=1.5)
-    whisker_properties_1 = dict(color='black')
-    cap_properties_1 = dict(color='black', linewidth=1)
-    flier_properties_1 = dict(marker='o', color = 'black', markerfacecolor='black', markersize=2)
+    # box_properties_1 = dict(facecolor = 'white', color='black', linewidth=1)
+    # median_properties_1 = dict(color='black', linewidth=1.5)
+    # whisker_properties_1 = dict(color='black')
+    # cap_properties_1 = dict(color='black', linewidth=1)
+    # flier_properties_1 = dict(marker='o', color = 'black', markerfacecolor='black', markersize=2)
 
-    box_properties_2 = dict(facecolor = 'white', color='red', linewidth=1)
-    median_properties_2 = dict(color='red', linewidth=1.5)
-    whisker_properties_2 = dict(color='red')
-    cap_properties_2 = dict(color='red', linewidth=1)
-    flier_properties_2 = dict(marker='o', color = 'red', markerfacecolor='red', markersize=2)
+    # box_properties_2 = dict(facecolor = 'white', color='red', linewidth=1)
+    # median_properties_2 = dict(color='red', linewidth=1.5)
+    # whisker_properties_2 = dict(color='red')
+    # cap_properties_2 = dict(color='red', linewidth=1)
+    # flier_properties_2 = dict(marker='o', color = 'red', markerfacecolor='red', markersize=2)
     
 
-    plt.boxplot([july_farm[Dimension.GSI.value], august_farm[Dimension.GSI.value], sept_farm[Dimension.GSI.value], oct_farm[Dimension.GSI.value]], 
+    # plt.boxplot([july_net[Dimension.GSI.value], august_net[Dimension.GSI.value], sept_farm[Dimension.GSI.value], oct_farm[Dimension.GSI.value]], 
+    #             positions = [1,2,3,4], 
+    #             widths = 0.3,
+    #             patch_artist=True, 
+    #             boxprops=box_properties_1, 
+    #             medianprops=median_properties_1,
+    #             whiskerprops=whisker_properties_1,
+    #             capprops=cap_properties_1,
+    #             flierprops=flier_properties_1)
+    # plt.boxplot([july_wild[Dimension.GSI.value], august_wild[Dimension.GSI.value], sept_wild[Dimension.GSI.value], oct_wild[Dimension.GSI.value]],
+    #             positions = [1.3,2.3,3.3,4.3], 
+    #             widths = 0.3,
+    #             patch_artist=True, 
+    #             boxprops=box_properties_2, 
+    #             medianprops=median_properties_2,
+    #             whiskerprops=whisker_properties_2,
+    #             capprops=cap_properties_2,
+    #             flierprops=flier_properties_2)
+    # plt.xticks([1.15,2.15,3.15,4.15], ['July', 'August', 'September', 'October'])
+    # plt.ylim(0, 35)
+    # plt.ylabel('GSI')
+    # plt.legend(handles = [
+    #         mpatches.Patch(color='black', label='Farm'),
+    #         mpatches.Patch(color='red', label='Wild'),
+    # ])
+    # plt.savefig(figures / "GSI_farm_vs_wild_boxplot.png")
+
+    box_properties = dict(facecolor = 'white', color='black', linewidth=1)
+    median_properties = dict(color='black', linewidth=1.5)
+    whisker_properties = dict(color='black')
+    cap_properties = dict(color='black', linewidth=1)
+    flier_properties = dict(marker='o', color = 'black', markerfacecolor='black', markersize=2)
+
+    box_properties_2 = dict(facecolor = 'white', color='blue', linewidth=1)
+    median_properties_2 = dict(color='blue', linewidth=1.5)
+    whisker_properties_2 = dict(color='blue')
+    cap_properties_2 = dict(color='blue', linewidth=1)
+    flier_properties_2 = dict(marker='o', color = 'blue', markerfacecolor='blue', markersize=2)
+
+    box_properties_3 = dict(facecolor = 'white', color='red', linewidth=1)
+    median_properties_3 = dict(color='red', linewidth=1.5)
+    whisker_properties_3 = dict(color='red')
+    cap_properties_3 = dict(color='red', linewidth=1)
+    flier_properties_3 = dict(marker='o', color = 'red', markerfacecolor='red', markersize=2)
+
+    plt.boxplot([july_net[Dimension.GSI.value], august_net[Dimension.GSI.value], sept_net[Dimension.GSI.value], oct_net[Dimension.GSI.value]], 
                 positions = [1,2,3,4], 
-                widths = 0.3,
+                widths = 0.2,
                 patch_artist=True, 
-                boxprops=box_properties_1, 
-                medianprops=median_properties_1,
-                whiskerprops=whisker_properties_1,
-                capprops=cap_properties_1,
-                flierprops=flier_properties_1)
-    plt.boxplot([july_wild[Dimension.GSI.value], august_wild[Dimension.GSI.value], sept_wild[Dimension.GSI.value], oct_wild[Dimension.GSI.value]],
-                positions = [1.3,2.3,3.3,4.3], 
-                widths = 0.3,
+                boxprops=box_properties, 
+                medianprops=median_properties,
+                whiskerprops=whisker_properties,
+                capprops=cap_properties,
+                flierprops=flier_properties)
+    plt.boxplot([july_cage[Dimension.GSI.value], august_cage[Dimension.GSI.value], sept_cage[Dimension.GSI.value], oct_cage[Dimension.GSI.value]],
+                positions = [1.2,2.2,3.2,4.2], 
+                widths = 0.2,
                 patch_artist=True, 
                 boxprops=box_properties_2, 
                 medianprops=median_properties_2,
                 whiskerprops=whisker_properties_2,
                 capprops=cap_properties_2,
                 flierprops=flier_properties_2)
-    plt.xticks([1.15,2.15,3.15,4.15], ['July', 'August', 'September', 'October'])
-    plt.ylim(0, 35)
+    plt.boxplot([july_wild[Dimension.GSI.value], august_wild[Dimension.GSI.value], sept_wild[Dimension.GSI.value], oct_wild[Dimension.GSI.value]],
+                positions = [1.4,2.4,3.4,4.4], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties_3, 
+                medianprops=median_properties_3,
+                whiskerprops=whisker_properties_3,
+                capprops=cap_properties_3,
+                flierprops=flier_properties_3)
+    plt.xticks([1.3,2.3,3.3,4.3], ['July', 'August', 'September', 'October'])
+    plt.ylim(0, 45)
     plt.ylabel('GSI')
     plt.legend(handles = [
-            mpatches.Patch(color='black', label='Farm'),
+            mpatches.Patch(color='black', label='Net'),
+            mpatches.Patch(color='blue', label='Cage'),
             mpatches.Patch(color='red', label='Wild'),
     ])
-    plt.savefig(figures / "GSI_farm_vs_wild_boxplot.png")
-
+    plt.savefig(figures / "GSI_gear_boxplot.png")

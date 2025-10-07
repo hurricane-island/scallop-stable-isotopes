@@ -5,7 +5,12 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import subplots, savefig, subplot
 from stats_analysis import Dimension, quantize_categorical_column
 import seaborn as sns
+import numpy as np
 from numpy import unique
+from stats_analysis import quantize_categorical_column, return_column_to_categorical
+from matplotlib.patches import Ellipse
+import matplotlib.transforms as transforms
+from scipy import stats
 
 
 figures = Path(__file__).parent / "figures"
@@ -61,16 +66,18 @@ if __name__ == "__main__":
     Pairplots of raw data
     change hue and columns as needed to color by different categories
     '''
-   
-
+    df = quantize_categorical_column(df, Dimension.GEAR.value, {"C": 1, "N": 2, "W": 3}) #ALL GEAR TYPES
+    df = return_column_to_categorical(df, Dimension.GEAR.value, {1: "Cage", 2: 'Net', 3: "Wild"})
+                               
+    custom_colors = ('black', "blue", "red")
     pairplot = sns.pairplot(df[[
         Dimension.NITROGEN_FRACTIONATION.value, 
         Dimension.CARBON_FRACTIONATION.value,
         Dimension.MOLAR_RATIO.value, 
         Dimension.GEAR.value]], 
-        hue=Dimension.GEAR.value)
-    sns.color_palette("bright", 4)
-    plt.savefig(figures / "new-pairplot-muscle-gear.png")
+        hue=Dimension.GEAR.value, 
+        palette=custom_colors,)
+    plt.savefig(figures / "new-pairplot-all-tissue-gear.png")
 
 
 
@@ -80,7 +87,16 @@ if __name__ == "__main__":
     
     data_muscle = quantize_categorical_column(data_muscle, 
                                               Dimension.GEAR.value, 
-                                              {"C": 1, "N": 1, "W": 2, "CF": 4, "NF": 4, "WF":3}) #FARMED VS WILD
+                                              {"C": 1, "N": 2, "W": 3}) #FARMED VS WILD "CF": 4, "NF": 4, "WF":3
+    
+    cages = data_muscle[data_muscle[Dimension.GEAR.value] == 1]
+    nets = data_muscle[data_muscle[Dimension.GEAR.value] == 5]
+    wild = data_muscle[data_muscle[Dimension.GEAR.value] == 2]
+
+    print(wild[Dimension.CARBON_FRACTIONATION.value].mean())
+    print(wild[Dimension.NITROGEN_FRACTIONATION.value].mean())
+    print(wild[Dimension.MOLAR_RATIO.value].mean())
+
 
     june = data_muscle[data_muscle[Dimension.COLLECTION_DATE.value] == 6]
     july = data_muscle[data_muscle[Dimension.COLLECTION_DATE.value] == 7]
@@ -158,7 +174,50 @@ if __name__ == "__main__":
         mpatches.Patch(color='tab:cyan', label='Farm Filter'),
         mpatches.Patch(color='tab:pink', label='Wild Filter')], 
         bbox_to_anchor=(1.05, 1))
-    # fig.savefig(figures / "rawdata_scatter_monthly_farm_vs_wild_filters.png")
+    fig.savefig(figures / "rawdata_scatter_monthly_gear.png")
+    
+
+    fig, ax = subplots(figsize=(10, 8))
+    sns.scatterplot(
+        x=data_muscle[Dimension.MOLAR_RATIO.value],
+        y=data_muscle[Dimension.CARBON_FRACTIONATION.value],
+        hue = data_muscle[Dimension.GEAR.value],
+        palette='tab10',
+        style= data_muscle[Dimension.COLLECTION_DATE.value],
+        legend = 'auto', #depending on how you want the legend to look, use this or replace with False and plt.legend below
+        s=150,
+    )
+    plt.xlabel("C/N")
+    plt.ylabel("d13C")
+    fig.savefig(f"{figures}/rawdata_scatter_gear_monthly.png")
+
+    '''
+    CHECKING FOR OUTLIERS in DATASET WITH A Z-SCORE GREATER THAN 3
+    '''
+
+    new_df = data_muscle[[Dimension.MOLAR_RATIO.value, 
+                          Dimension.CARBON_FRACTIONATION.value,
+                          Dimension.COLLECTION_DATE.value, 
+                          Dimension.NITROGEN_FRACTIONATION.value,
+                          Dimension.GEAR.value, 
+                          Dimension.SEX.value ]]
+    
+
+    z = np.abs(stats.zscore(data_muscle[Dimension.CARBON_FRACTIONATION.value]))
+    a = np.abs(stats.zscore(data_muscle[Dimension.NITROGEN_FRACTIONATION.value]))
+    b = np.abs(stats.zscore(data_muscle[Dimension.MOLAR_RATIO.value]))
+    data_muscle['d13C z score'] = z
+    data_muscle['d15N z score'] = a
+    data_muscle['C/N z score'] = b
+    d13C_outliers = data_muscle.loc[data_muscle['d13C z score'] > 3]
+    d15N_outliers = data_muscle.loc[data_muscle['d15N z score'] > 3]
+    CN_outliers = data_muscle.loc[data_muscle['C/N z score'] > 3]
+    print(d13C_outliers)
+    print(d15N_outliers)
+    print(CN_outliers)
 
 
-        
+
+
+
+

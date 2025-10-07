@@ -11,13 +11,14 @@ from pandas import DataFrame, read_csv, to_datetime, set_option
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
 from numpy import arange, sqrt
-from matplotlib.pyplot import subplots, savefig
+from matplotlib.pyplot import subplots, savefig, MultipleLocator
 from scipy.stats import levene
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA, FactorAnalysis
 from matplotlib import patches as mpatches
 import seaborn as sns
 import matplotlib.pyplot as plt
+
 
 
 figures = Path(__file__).parent / "figures"
@@ -39,7 +40,7 @@ class Dimension(Enum):
     MOLAR_RATIO = "C/N (Molar)"
     GEAR = "Gear Type"
     COLLECTION_DATE = "Collection Date"
-    TISSUE = "Tissue Type (Gonad or Muscle)"
+    TISSUE = "Tissue Type" 
     SEX = "Sex"
     DATE_RUN = "Date Run"
     FARM_VS_WILD = "Farm vs Wild"  # New column for farm vs wild categorization, include?
@@ -175,7 +176,7 @@ if __name__ == "__main__":
             Dimension.DATE_RUN.value,
         ],
     )
-
+    
     # Remove known contaminated samples
     for date in range(len(df[Dimension.DATE_RUN.value])):
         if df[Dimension.DATE_RUN.value][date] in bad_run_dates:
@@ -191,10 +192,12 @@ if __name__ == "__main__":
     # only scallops and filters are being plotted
     df.dropna(subset=[Dimension.GEAR.value], inplace=True)
 
+
     tissue = df.dropna(subset=[Dimension.TISSUE.value])
     mask = tissue[Dimension.TISSUE.value] == "G"
     data_muscle = tissue.drop(tissue[mask].index)
 
+    custom_colors = ('black', "blue", "red")
     fig, ax = subplots(figsize=(8, 6))
     # Confirm that the data is normally distributed
     for dim in [
@@ -202,7 +205,7 @@ if __name__ == "__main__":
         Dimension.CARBON_FRACTIONATION.value,
         Dimension.MOLAR_RATIO.value,
     ]:
-        data_muscle[dim].hist(ax=ax, label=dim)
+        data_muscle[dim].hist(ax=ax, label=dim, color = custom_colors[["d15N", "d13C", "C/N (Molar)"].index(dim)])
     ax.legend()
     ax.grid(False)
     savefig(f"{figures}/muscle_tissue_histograms.png")
@@ -249,10 +252,12 @@ if __name__ == "__main__":
     std_scaler = StandardScaler()
     scaled_df = std_scaler.fit_transform(pca_df)
     pca = PCA(n_components=2)
-    
+
     components = pca.fit_transform(scaled_df)
     explained_variance = pca.explained_variance_ratio_
     loadings = pca.components_.T * sqrt(explained_variance)
+
+
 
     '''
     Factor Analysis
@@ -265,6 +270,10 @@ if __name__ == "__main__":
             Dimension.COLLECTION_DATE.value]]
     fact_analysis_all = FactorAnalysis(n_components=2)
     factors = fact_analysis_all.fit_transform(FA_df)
+    
+    fa_loadings = fact_analysis_all.components_
+    fa_loadings = fa_loadings.T
+    print(fa_loadings)
 
     # Make a scree plot to visualize the proportion of variance
     # explained by each principal component
@@ -336,13 +345,14 @@ if __name__ == "__main__":
     df = return_column_to_categorical(df, Dimension.COLLECTION_DATE.value, {6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October'}) 
 
     # Alternative PCA score plot using seaborn to use different markers
+    custom_colors = ('black', "blue")
     fig, ax = subplots(figsize=(10, 8))
     sns.scatterplot(
         x=components[:, 0],
         y=components[:, 1],
         hue=df[Dimension.TISSUE.value],
         style=df[Dimension.SEX.value],
-        palette='bright', 
+        palette =custom_colors, 
         legend = 'full', #depending on how you want the legend to look, use this or replace with False and plt.legend below
         s=100,
     )
@@ -355,6 +365,35 @@ if __name__ == "__main__":
     #     mpatches.Patch(color='red', label='Farmed')],
     #     loc = 'upper right')
     fig.savefig(f"{figures}/pca_score_plot_tissue_sex.png")
+
+    '''
+    PCA loadings plot
+    '''
+
+    fig, ax = subplots(figsize=(10, 8))
+    sns.scatterplot(
+        x=loadings[:, 0],
+        y=loadings[:, 1],
+        hue = loadings[:, 1],
+        palette='tab10',
+        legend = False, #depending on how you want the legend to look, use this or replace with False and plt.legend below
+        s=150,
+    )
+    plt.xlim(-0.6,0.6)
+    plt.ylim(-0.6,0.6)
+    plt.xlabel("Principal Component 1")
+    plt.ylabel("Principal Component 2")
+    # plt.legend(handles=[
+    #     mpatches.Patch(color='tab:blue', label='d15N'),
+    #     mpatches.Patch(color='tab:orange', label='d13C'),
+    #     mpatches.Patch(color= 'tab:green', label = 'C/N')],
+    #     loc = 'upper right')
+    labels = ['d15N','d13C','C/N']
+    for i, txt in enumerate(labels):
+        plt.text(loadings[:, 0][i], loadings[:,1][i] + 0.02, txt, fontsize=12)
+    plt.grid(True, 'major')
+    fig.savefig(f"{figures}/pca_loadings.png")
+
 
     '''
     Factor Analysis Plots
@@ -375,13 +414,14 @@ if __name__ == "__main__":
 
 
     #FAMD plot using seaborn to use different markers
+    custom_colors = ('black', "blue", "red", "yellow", "purple")
     fig, ax = subplots(figsize=(10, 8))
     sns.scatterplot(
         x=factors[:, 0],
         y=factors[:, 1],
         hue=df[Dimension.COLLECTION_DATE.value],
         style=df[Dimension.TISSUE.value],
-        palette='bright', 
+        palette=custom_colors, 
         legend = 'auto',
         s=100,
     )
@@ -394,6 +434,34 @@ if __name__ == "__main__":
     #     mpatches.Patch(color='red', label='Farmed')],
     #     loc = 'upper right')
     fig.savefig(f"{figures}/fa_date_plot.png")
-   
+
+    '''
+    FAMD loadings plot
+    '''
+
+    fig, ax = subplots(figsize=(10, 8))
+    sns.scatterplot(
+        x=fa_loadings[:, 0],
+        y=fa_loadings[:, 1],
+        hue = fa_loadings[:, 1],
+        palette='tab10',
+        legend = False, #depending on how you want the legend to look, use this or replace with False and plt.legend below
+        s=150,
+    )
+    plt.xlim(-1,1)
+    plt.ylim(-1,1)
+    plt.xlabel("Factor 1")
+    plt.ylabel("Factor 2")
+    # plt.legend(handles=[
+    #     mpatches.Patch(color='tab:blue', label='d15N'),
+    #     mpatches.Patch(color='tab:orange', label='d13C'),
+    #     mpatches.Patch(color= 'tab:green', label = 'C/N')],
+    #     loc = 'upper right')
+    labels = ['d15N','d13C','C/N', 'Collection Date']
+    for i, txt in enumerate(labels):
+        plt.text(fa_loadings[:, 0][i], fa_loadings[:,1][i] + 0.02, txt, fontsize=12)
+    plt.grid(True, 'major')
+    fig.savefig(f"{figures}/fa_loadings.png")
+
 
 
