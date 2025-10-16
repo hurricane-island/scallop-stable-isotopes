@@ -14,7 +14,7 @@ from scipy import stats
 
 
 figures = Path(__file__).parent / "figures"
-raw_data = Path(__file__).parent / "data" / "2023IsotopeDataReport-cleanedinexcel.csv"
+raw_data = Path(__file__).parent / "data" / "2023IsotopeDataReport-no-outliers.csv"
 bad_run_dates = {"9/6/23"}  # use Set() as more generic lookup than single value
 
 
@@ -68,8 +68,51 @@ if __name__ == "__main__":
     '''
     df = quantize_categorical_column(df, Dimension.GEAR.value, {"C": 1, "N": 2, "W": 3}) #ALL GEAR TYPES
     df = return_column_to_categorical(df, Dimension.GEAR.value, {1: "Cage", 2: 'Net', 3: "Wild"})
-                               
+
+    data_muscle = quantize_categorical_column(data_muscle, Dimension.GEAR.value, {"C": 1, "N": 2, "W": 3}) #ALL GEAR TYPES
+    data_muscle = return_column_to_categorical(data_muscle, Dimension.GEAR.value, {1: "Cage", 2: 'Net', 3: "Wild"})
+
+
+    cages_muscle = data_muscle[data_muscle[Dimension.GEAR.value]== "Cage"]
+    nets_muscle = data_muscle[data_muscle[Dimension.GEAR.value]== "Net"]
+    wild_muscle = data_muscle[data_muscle[Dimension.GEAR.value]== "Wild"]
+
+
     custom_colors = ('black', "blue", "red")
+    fig, ax = subplots(figsize=(10, 8))
+    sns.scatterplot(
+        x=wild[Dimension.MOLAR_RATIO.value],
+        y=wild[Dimension.CARBON_FRACTIONATION.value],
+        # hue = data_muscle[Dimension.GEAR.value],
+        # palette = custom_colors,
+        # style = data_muscle[Dimension.GEAR.value],
+        # edgecolor = 'black',
+        # facecolor = 'black',
+        legend = 'auto',
+        s=30,
+        ax=ax
+    )
+    fig.savefig(f"{figures}/wild_lipid_extraction.png")
+
+    
+    
+    custom_colors = ('black', "blue", "red")
+    fig, ax = subplots(figsize=(10, 8))
+    sns.scatterplot(
+        x=df[Dimension.COLLECTION_DATE.value],
+        y=df[Dimension.MOLAR_RATIO.value],
+        hue = df[Dimension.GEAR.value],
+        palette = custom_colors,
+        style = df[Dimension.TISSUE.value],
+        # edgecolor = 'black',
+        # facecolor = 'black',
+        legend = 'auto',
+        s=30,
+        ax=ax
+    )
+    fig.savefig(f"{figures}/CN_timeline.png")
+
+
     pairplot = sns.pairplot(df[[
         Dimension.NITROGEN_FRACTIONATION.value, 
         Dimension.CARBON_FRACTIONATION.value,
@@ -90,12 +133,16 @@ if __name__ == "__main__":
                                               {"C": 1, "N": 2, "W": 3}) #FARMED VS WILD "CF": 4, "NF": 4, "WF":3
     
     cages = data_muscle[data_muscle[Dimension.GEAR.value] == 1]
-    nets = data_muscle[data_muscle[Dimension.GEAR.value] == 5]
-    wild = data_muscle[data_muscle[Dimension.GEAR.value] == 2]
+    nets = data_muscle[data_muscle[Dimension.GEAR.value] == 2]
+    wild = data_muscle[data_muscle[Dimension.GEAR.value] == 3]
 
-    print(wild[Dimension.CARBON_FRACTIONATION.value].mean())
-    print(wild[Dimension.NITROGEN_FRACTIONATION.value].mean())
-    print(wild[Dimension.MOLAR_RATIO.value].mean())
+    # print(wild[Dimension.CARBON_FRACTIONATION.value].mean())
+    # print(wild[Dimension.NITROGEN_FRACTIONATION.value].mean())
+    # print(wild[Dimension.MOLAR_RATIO.value].mean())
+    
+    print(data_muscle[Dimension.CARBON_FRACTIONATION.value].describe())
+    print(data_muscle[Dimension.NITROGEN_FRACTIONATION.value].describe())
+    print(data_muscle[Dimension.MOLAR_RATIO.value].describe())
 
 
     june = data_muscle[data_muscle[Dimension.COLLECTION_DATE.value] == 6]
@@ -215,6 +262,11 @@ if __name__ == "__main__":
     print(d13C_outliers)
     print(d15N_outliers)
     print(CN_outliers)
+
+    '''
+    Dataset was saved after removing outliers. Clean data: 2023IsotopeDataReport-no-outliers.csv 
+    '''
+
 
 
 

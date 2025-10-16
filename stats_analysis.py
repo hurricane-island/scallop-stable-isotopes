@@ -10,19 +10,21 @@ from enum import Enum
 from pandas import DataFrame, read_csv, to_datetime, set_option
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
-from numpy import arange, sqrt
+from numpy import arange, sqrt, column_stack, vstack
 from matplotlib.pyplot import subplots, savefig, MultipleLocator
 from scipy.stats import levene
+from scipy.spatial import ConvexHull
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA, FactorAnalysis
 from matplotlib import patches as mpatches
 import seaborn as sns
 import matplotlib.pyplot as plt
+import prince 
 
 
 
 figures = Path(__file__).parent / "figures"
-raw_data = Path(__file__).parent / "data" / "2023IsotopeDataReport-cleanedinexcel.csv"
+raw_data = Path(__file__).parent / "data" / "2023IsotopeDataReport-no-outliers.csv"
 bad_run_dates = {"9/6/23"}  # use Set() as more generic lookup than single value
 
 
@@ -242,8 +244,12 @@ if __name__ == "__main__":
     df = quantize_categorical_column(df, Dimension.GEAR.value, {"C": 1, "N": 2, "W": 3})
     df = quantize_categorical_column(df, Dimension.SEX.value, {"F": 1, "M": 2})
     df = quantize_categorical_column(df, Dimension.TISSUE.value, {"G": 1, "M": 2})
+    data_muscle = quantize_categorical_column(data_muscle, Dimension.GEAR.value, {"C": 1, "N": 2, "W": 3})
+    data_muscle = quantize_categorical_column(data_muscle, Dimension.SEX.value, {"F": 1, "M": 2})
+    data_muscle = quantize_categorical_column(data_muscle, Dimension.TISSUE.value, {"G": 1, "M": 2})
+
     
-    pca_df = df[[ 
+    pca_df = data_muscle[[ 
             Dimension.NITROGEN_FRACTIONATION.value,
             Dimension.CARBON_FRACTIONATION.value,
             Dimension.MOLAR_RATIO.value,
@@ -257,23 +263,6 @@ if __name__ == "__main__":
     explained_variance = pca.explained_variance_ratio_
     loadings = pca.components_.T * sqrt(explained_variance)
 
-
-
-    '''
-    Factor Analysis
-    Variables used: CARBON_FRACTIONATION, NITROGEN_FRACTIONATION, MOLAR_RATIO, COLLECTION_DATE
-    '''
-
-    FA_df = df[[ Dimension.CARBON_FRACTIONATION.value,
-            Dimension.NITROGEN_FRACTIONATION.value,
-            Dimension.MOLAR_RATIO.value,
-            Dimension.COLLECTION_DATE.value]]
-    fact_analysis_all = FactorAnalysis(n_components=2)
-    factors = fact_analysis_all.fit_transform(FA_df)
-    
-    fa_loadings = fact_analysis_all.components_
-    fa_loadings = fa_loadings.T
-    print(fa_loadings)
 
     # Make a scree plot to visualize the proportion of variance
     # explained by each principal component
@@ -289,6 +278,144 @@ if __name__ == "__main__":
     fig, ax = subplots(figsize=(10, 3))
     ax.axis("off")
 
+    '''
+    Factor Analysis of Mixed Data
+    Variables used: CARBON_FRACTIONATION, NITROGEN_FRACTIONATION, MOLAR_RATIO, COLLECTION_DATE
+    '''
+    data_muscle = return_column_to_categorical(data_muscle, Dimension.COLLECTION_DATE.value, {6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October'}) 
+    data_muscle = return_column_to_categorical(data_muscle, Dimension.GEAR.value, {1: 'Farm', 2: 'Farm', 3: 'Wild'}) 
+    df = return_column_to_categorical(df, Dimension.COLLECTION_DATE.value, {6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October'}) 
+    df = return_column_to_categorical(df, Dimension.GEAR.value, {1: 'Farm', 2: 'Farm', 3: 'Wild'}) 
+
+
+    famd = prince.FAMD(
+        n_components=2,
+        n_iter=3,
+        copy=True,
+        check_input=True,
+        random_state=None,
+        engine="sklearn",
+        handle_unknown="error"  # same parameter as sklearn.preprocessing.OneHotEncoder
+)
+    famd_data = data_muscle[[Dimension.CARBON_FRACTIONATION.value,
+            Dimension.NITROGEN_FRACTIONATION.value,
+            Dimension.MOLAR_RATIO.value,
+            Dimension.COLLECTION_DATE.value]]
+    famd = famd.fit(famd_data)
+    
+    print(famd.eigenvalues_summary)
+    print(famd.column_contributions_)
+
+    factors_famd = DataFrame(famd.row_coordinates(famd_data))
+ 
+     #FAMD plot using seaborn to use different markers
+    custom_colors = ('black', 'red')
+    fig, ax = subplots(figsize=(10, 8))
+    sns.scatterplot(
+        x=factors_famd[0],
+        y=factors_famd[1],
+        hue = data_muscle[Dimension.GEAR.value],
+        style = data_muscle[Dimension.GEAR.value],
+        markers = ('o', 'D'),
+        palette = custom_colors,
+        legend = 'brief',
+        s=30,
+        ax=ax
+    )
+    for date in data_muscle[Dimension.COLLECTION_DATE.value].unique():
+        if date == 'October':
+            subset_mask = data_muscle[Dimension.COLLECTION_DATE.value] == date
+            subset_points = column_stack((
+                factors_famd.loc[subset_mask, 0],
+                factors_famd.loc[subset_mask, 1]
+            ))
+        
+            if len(subset_points) >= 3:
+                hull = ConvexHull(subset_points)
+                hull_points = subset_points[hull.vertices]
+                hull_points = vstack([hull_points, hull_points[0]])  # close polygon
+
+                ax.fill(
+                    hull_points[:, 0],
+                    hull_points[:, 1],
+                    alpha=0,
+                    label=f'{date}',
+                    zorder=2
+                )
+                ax.plot(
+                    hull_points[:, 0],
+                    hull_points[:, 1],
+                    lw=1,
+                    linestyle='--',
+                    color='black',
+                    zorder=3
+                )
+        if date == 'June':
+            subset_mask = data_muscle[Dimension.COLLECTION_DATE.value] == date
+            subset_points = column_stack((
+                factors_famd.loc[subset_mask, 0],
+                factors_famd.loc[subset_mask, 1]
+            ))
+        
+            if len(subset_points) >= 3:
+                hull = ConvexHull(subset_points)
+                hull_points = subset_points[hull.vertices]
+                hull_points = vstack([hull_points, hull_points[0]])  # close polygon
+
+                ax.fill(
+                    hull_points[:, 0],
+                    hull_points[:, 1],
+                    alpha=0,
+                    label=f'{date}',
+                    zorder=2
+                )
+                ax.plot(
+                    hull_points[:, 0],
+                    hull_points[:, 1],
+                    lw=1,
+                    linestyle='-',
+                    color='black',
+                    zorder=3
+                )
+
+    plt.xlabel("Factor 1")
+    plt.ylabel("Factor 2")
+    plt.show()
+    # fig.savefig(f"{figures}/convex_hull_famd_date_gear_plot.png")
+
+    custom_colors = ('black', "red")
+    fig, ax = subplots(figsize=(10, 8))
+    sns.scatterplot(
+        x=factors_famd[0],
+        y=factors_famd[1],
+        hue = data_muscle[Dimension.GEAR.value],
+        style = data_muscle['Depth'],
+        palette=custom_colors, 
+        legend = 'auto',
+        s=100,
+        zorder = 2,
+    )
+    plt.xlim(-4,4)
+    plt.ylim(-4,4)
+    plt.xlabel("Factor 1")
+    plt.ylabel("Factor 2")
+    fig.savefig(f"{figures}/famd_gear_plot.png")
+
+    df = quantize_categorical_column(df, Dimension.COLLECTION_DATE.value, {'June':6, 'July':7,'August':8,'September':9,'October':10}) 
+    data_muscle = quantize_categorical_column(data_muscle, Dimension.COLLECTION_DATE.value, {'June':6, 'July':7,'August':8,'September':9,'October':10}) 
+
+    '''
+    3D plot showing 3 factors
+    '''
+    # x = factors_famd[0]
+    # y = factors_famd[1]
+    # z = factors_famd[2]
+    # hue_var = data_muscle[Dimension.COLLECTION_DATE.value]
+    # fig = plt.figure(figsize=(10, 8))
+    # ax = fig.add_subplot(111, projection='3d')
+    # scatter = ax.scatter(x, y, z, c=hue_var, cmap='icefire', s=50)
+    # plt.show()
+
     # Make a table to summarize the PCA results
     pca.explained_variance_.tolist()
     pca.explained_variance_ratio_.tolist()
@@ -299,7 +426,7 @@ if __name__ == "__main__":
         pca.explained_variance_ratio_.round(2),
         pca.explained_variance_ratio_.cumsum().round(2),
     ]
-
+    fig, ax = subplots(figsize=(10, 8))
     table = ax.table(
         cellText=summary,
         colLabels=[
@@ -311,47 +438,19 @@ if __name__ == "__main__":
         rowLoc="center",
         loc="center",
     )
-    fig.savefig(f"{figures}/pca_summary_table.png")
+    fig.savefig(f"{figures}/new_pca_summary_table.png")
 
     # Look at score plots to visualize how samples relate to each
     # other in the space defined by the principal components
 
-    '''
-    matplotlib scatter does not let you use different marker styles
-    '''
-    # fig, ax = subplots(figsize=(10, 8))
-    # series = df[Dimension.GEAR.value]  # Dimension.GEAR.value
-    # markers = df[Dimension.FARM_VS_WILD.value] #FARM VS WILD
-    # for _ in zip(series, markers):
-    #         ax.scatter(components[:, 0], 
-    #                    components[:, 1], 
-    #                    c=series, 
-    #                    cmap="tab10", 
-    #                    marker=markers)
-    #         ax.set_title("PCA Score Plot: PC1 vs PC2")
-    #         ax.set_xlim(-4, 4)
-    #         ax.set_ylim(-4, 4)
-    # fig.legend(handles=[
-    # mpatches.Patch(color='tab:blue', label='Cage'),
-    # mpatches.Patch(color='tab:red', label='Net'),
-    # mpatches.Patch(color='tab:cyan', label='Wild')],
-    # bbox_to_anchor=(1.05, 1))
-    # fig.savefig(f"{figures}/all_tissue_pca_score_plot_gear.png")
-    
-    #returning categorical columns to strings for better readability in plot legends
-    df = return_column_to_categorical(df, Dimension.GEAR.value, {1: 'Farm', 2: 'Farm', 3: 'Wild'}) #NK, should I make new columns for farm vs wild and depth?
-    df = return_column_to_categorical(df, Dimension.SEX.value, {1: 'Female', 2: 'Male'})
-    df = return_column_to_categorical(df, Dimension.TISSUE.value, {1: 'Gonad', 2: 'Muscle'})
-    df = return_column_to_categorical(df, Dimension.COLLECTION_DATE.value, {6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October'}) 
-
     # Alternative PCA score plot using seaborn to use different markers
-    custom_colors = ('black', "blue")
+    custom_colors = ('black', "red")
     fig, ax = subplots(figsize=(10, 8))
     sns.scatterplot(
         x=components[:, 0],
         y=components[:, 1],
-        hue=df[Dimension.TISSUE.value],
-        style=df[Dimension.SEX.value],
+        hue=data_muscle[Dimension.GEAR.value],
+        style=data_muscle['Depth'],
         palette =custom_colors, 
         legend = 'full', #depending on how you want the legend to look, use this or replace with False and plt.legend below
         s=100,
@@ -364,12 +463,12 @@ if __name__ == "__main__":
     #     mpatches.Patch(color='black', label='Wild'),
     #     mpatches.Patch(color='red', label='Farmed')],
     #     loc = 'upper right')
-    fig.savefig(f"{figures}/pca_score_plot_tissue_sex.png")
+    fig.savefig(f"{figures}/pca_score_plot_gear.png")
 
     '''
     PCA loadings plot
     '''
-
+    # print(loadings)
     fig, ax = subplots(figsize=(10, 8))
     sns.scatterplot(
         x=loadings[:, 0],
@@ -383,85 +482,11 @@ if __name__ == "__main__":
     plt.ylim(-0.6,0.6)
     plt.xlabel("Principal Component 1")
     plt.ylabel("Principal Component 2")
-    # plt.legend(handles=[
-    #     mpatches.Patch(color='tab:blue', label='d15N'),
-    #     mpatches.Patch(color='tab:orange', label='d13C'),
-    #     mpatches.Patch(color= 'tab:green', label = 'C/N')],
-    #     loc = 'upper right')
     labels = ['d15N','d13C','C/N']
     for i, txt in enumerate(labels):
         plt.text(loadings[:, 0][i], loadings[:,1][i] + 0.02, txt, fontsize=12)
     plt.grid(True, 'major')
     fig.savefig(f"{figures}/pca_loadings.png")
-
-
-    '''
-    Factor Analysis Plots
-    Variables used: CARBON_FRACTIONATION, NITROGEN_FRACTIONATION, MOLAR_RATIO, COLLECTION_DATE
-    
-    Look at plots to visualize how samples relate to each
-    other in the space defined by the factors
-    '''
-
-    # matplotlib scatter does not let you use different marker styles
-    # fig, ax = subplots(figsize=(8, 6))
-    # series = df[Dimension.GEAR.value]
-    # for _ in series:
-    #     ax.scatter(factors[:,0], factors[:,1], c = series, cmap = 'Paired')
-    #     ax.set_title("FA Plot: F1 vs F2")
-    #     ax.set_xlim(-2, 2)
-    #     ax.set_ylim(-2, 2)
-
-
-    #FAMD plot using seaborn to use different markers
-    custom_colors = ('black', "blue", "red", "yellow", "purple")
-    fig, ax = subplots(figsize=(10, 8))
-    sns.scatterplot(
-        x=factors[:, 0],
-        y=factors[:, 1],
-        hue=df[Dimension.COLLECTION_DATE.value],
-        style=df[Dimension.TISSUE.value],
-        palette=custom_colors, 
-        legend = 'auto',
-        s=100,
-    )
-    plt.xlim(-3,3)
-    plt.ylim(-3,3)
-    plt.xlabel("Factor 1")
-    plt.ylabel("Factor 2")
-    # plt.legend(handles=[
-    #     mpatches.Patch(color='black', label='Wild'),
-    #     mpatches.Patch(color='red', label='Farmed')],
-    #     loc = 'upper right')
-    fig.savefig(f"{figures}/fa_date_plot.png")
-
-    '''
-    FAMD loadings plot
-    '''
-
-    fig, ax = subplots(figsize=(10, 8))
-    sns.scatterplot(
-        x=fa_loadings[:, 0],
-        y=fa_loadings[:, 1],
-        hue = fa_loadings[:, 1],
-        palette='tab10',
-        legend = False, #depending on how you want the legend to look, use this or replace with False and plt.legend below
-        s=150,
-    )
-    plt.xlim(-1,1)
-    plt.ylim(-1,1)
-    plt.xlabel("Factor 1")
-    plt.ylabel("Factor 2")
-    # plt.legend(handles=[
-    #     mpatches.Patch(color='tab:blue', label='d15N'),
-    #     mpatches.Patch(color='tab:orange', label='d13C'),
-    #     mpatches.Patch(color= 'tab:green', label = 'C/N')],
-    #     loc = 'upper right')
-    labels = ['d15N','d13C','C/N', 'Collection Date']
-    for i, txt in enumerate(labels):
-        plt.text(fa_loadings[:, 0][i], fa_loadings[:,1][i] + 0.02, txt, fontsize=12)
-    plt.grid(True, 'major')
-    fig.savefig(f"{figures}/fa_loadings.png")
 
 
 

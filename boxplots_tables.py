@@ -3,9 +3,55 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 import matplotlib.patches as mpatches
+from enum import Enum
 
 figures = Path(__file__).parent / "figures"
-rawdata = Path(__file__).parent / "data" / "2023IsotopeDataReport-cleanedinexcel.csv"
+rawdata = Path(__file__).parent / "data" / "2023IsotopeDataReport-no-outliers.csv"
+gsidata = Path(__file__).parent / "data" / "2023_StableIsotope_GSI_data.csv"
+
+class Dimension(Enum):
+    COLLECTION_DATE = "Month"
+    GEAR = "Gear Type"
+    SEX = "Sex"
+    SHELL_HEIGHT = "Shell_Height"
+    TOTAL_VISCERA_WEIGHT = "Total_Viscera_Weight"
+    MUSCLE_WEIGHT = "Meat_Weight"
+    GONAD_WEIGHT = "Gonad_Weight"
+    GSI = "GSI"
+
+gsi_data = pd.read_csv(gsidata, header = 0, usecols = [
+            Dimension.COLLECTION_DATE.value,
+            Dimension.GEAR.value,
+            Dimension.SEX.value,
+            Dimension.GSI.value])
+gsi_data = gsi_data.dropna(subset=[Dimension.GSI.value, Dimension.COLLECTION_DATE.value, Dimension.GEAR.value])
+
+# Separate by gear type
+cage = gsi_data[gsi_data[Dimension.GEAR.value] == 'C']
+net = gsi_data[gsi_data[Dimension.GEAR.value] == 'N']
+farm = gsi_data[gsi_data[Dimension.GEAR.value] != 'W']
+wild = gsi_data[gsi_data[Dimension.GEAR.value] == 'W']
+
+# Separate by gear type and month
+july_cage = cage[cage[Dimension.COLLECTION_DATE.value] == 7]
+august_cage = cage[cage[Dimension.COLLECTION_DATE.value] == 8]
+sept_cage = cage[cage[Dimension.COLLECTION_DATE.value] == 9]
+oct_cage = cage[cage[Dimension.COLLECTION_DATE.value] == 10]
+
+july_net = net[net[Dimension.COLLECTION_DATE.value] == 7]
+august_net = net[net[Dimension.COLLECTION_DATE.value] == 8]
+sept_net = net[net[Dimension.COLLECTION_DATE.value] == 9]
+oct_net = net[net[Dimension.COLLECTION_DATE.value] == 10]
+
+july_wild = wild[wild[Dimension.COLLECTION_DATE.value] == 7]
+august_wild = wild[wild[Dimension.COLLECTION_DATE.value] == 8]
+sept_wild = wild[wild[Dimension.COLLECTION_DATE.value] == 9]
+oct_wild = wild[wild[Dimension.COLLECTION_DATE.value] == 10]
+
+july_farm = farm[farm[Dimension.COLLECTION_DATE.value] == 7]
+august_farm = farm[farm[Dimension.COLLECTION_DATE.value] == 8]
+sept_farm = farm[farm[Dimension.COLLECTION_DATE.value] == 9]
+oct_farm = farm[farm[Dimension.COLLECTION_DATE.value] == 10]
 
 
 data = pd.read_csv(rawdata, header=0, usecols = [
@@ -76,7 +122,7 @@ In the line below, change data_gonad to data_muscle if you want to plot muscle d
 mapping = {'C': 'B', 'N': 'T', 'W': 'B'}
 data_muscle['Column Height'] = data_muscle['Gear Type'].map(mapping) #C and W are at the same depth
 
-monthly = data_gonad.groupby('Collection Date') #GONAD OR MUSCLE!!!
+monthly = data_muscle.groupby('Collection Date') #GONAD OR MUSCLE!!!
 june = monthly.get_group(6)
 july = monthly.get_group(7)
 august = monthly.get_group(8)
@@ -129,6 +175,47 @@ o_wild = ogear.get_group('W')
 o_cage_filt = ogear.get_group('CF')
 o_net_filt = ogear.get_group('NF')
 o_wild_filt = ogear.get_group('WF')
+
+
+monthly = data_gonad.groupby('Collection Date') #GONAD OR MUSCLE!!!
+
+june_gonad = monthly.get_group(6)
+july_gonad = monthly.get_group(7)
+august_gonad = monthly.get_group(8)
+september_gonad = monthly.get_group(9)
+october_gonad = monthly.get_group(10)
+
+
+june_df_gonad = pd.DataFrame(june_gonad)
+july_df_gonad = pd.DataFrame(july_gonad)
+august_df_gonad = pd.DataFrame(august_gonad)
+sept_df_gonad = pd.DataFrame(september_gonad)
+oct_df_gonad = pd.DataFrame(october_gonad)
+
+jgear_gonad = june_df_gonad.groupby('Gear Type')
+j_cage_gonad = jgear_gonad.get_group('C')
+j_net_gonad = jgear_gonad.get_group('N')
+j_wild_gonad = jgear_gonad.get_group('W')
+
+jugear_gonad = july_df_gonad.groupby('Gear Type')
+ju_cage_gonad = jugear_gonad.get_group('C')
+ju_net_gonad = jugear_gonad.get_group('N')
+ju_wild_gonad = jugear_gonad.get_group('W')
+
+agear_gonad = august_df_gonad.groupby('Gear Type')
+a_cage_gonad = agear_gonad.get_group('C')
+a_net_gonad = agear_gonad.get_group('N')
+a_wild_gonad = agear_gonad.get_group('W')
+
+sgear_gonad = sept_df_gonad.groupby('Gear Type')
+s_cage_gonad = sgear_gonad.get_group('C')
+s_net_gonad = sgear_gonad.get_group('N')
+s_wild_gonad = sgear_gonad.get_group('W')
+
+ogear_gonad = oct_df_gonad.groupby('Gear Type')
+o_cage_gonad = ogear_gonad.get_group('C')
+o_net_gonad = ogear_gonad.get_group('N')
+o_wild_gonad = ogear_gonad.get_group('W')
 
 june_df = pd.DataFrame(june)
 july_df = pd.DataFrame(july)
@@ -368,6 +455,8 @@ WORKING TEMPLATE FOR BOXPLOTS!
 I still need to go through this file and clean it up
 '''
 
+fig, ax = plt.subplots(3,1, figsize = (5,4))
+
 box_properties = dict(facecolor = 'white', color='black', linewidth=1)
 median_properties = dict(color='black', linewidth=1.5)
 whisker_properties = dict(color='black')
@@ -386,6 +475,92 @@ whisker_properties_3 = dict(color='red')
 cap_properties_3 = dict(color='red', linewidth=1)
 flier_properties_3 = dict(marker='o', color = 'red', markerfacecolor='red', markersize=2)
 
+box_properties_4 = dict(facecolor = 'white', color='tab:grey', linewidth=1, linestyle = '-')
+median_properties_4 = dict(color='tab:grey', linewidth=1.5, linestyle = '-')
+whisker_properties_4 = dict(color='tab:grey', linestyle = '-')
+cap_properties_4 = dict(color='tab:grey', linewidth=1, linestyle = '-')
+flier_properties_4 = dict(marker='o', color = 'tab:grey', markerfacecolor='tab:grey', markersize=2)
+
+box_properties_5 = dict(facecolor = 'white', color='tab:blue', linewidth=1, linestyle = '-')
+median_properties_5 = dict(color='tab:blue', linewidth=1.5, linestyle = '-')
+whisker_properties_5 = dict(color='tab:blue', linestyle = '-')
+cap_properties_5 = dict(color='tab:blue', linewidth=1, linestyle = '-')
+flier_properties_5 = dict(marker='o', color = 'tab:blue', markerfacecolor='tab:blue', markersize=2, linestyle = '-')
+
+box_properties_6 = dict(facecolor = 'white', color='m', linewidth=1, linestyle = '-' )
+median_properties_6 = dict(color='m', linewidth=1.5, linestyle = '-')
+whisker_properties_6 = dict(color='m', linestyle = '-')
+cap_properties_6 = dict(color='m', linewidth=1, linestyle = '-')
+flier_properties_6 = dict(marker='o', color = 'm', markerfacecolor='m', markersize=2, linestyle = '-')
+
+plt.subplot(3,1,1)
+plt.boxplot([j_net['d13C'], ju_net['d13C'], a_net['d13C'], s_net['d13C'], o_net['d13C']], 
+            positions = [1,2,3,4,5], 
+            widths = 0.2,
+            patch_artist=True, 
+            boxprops=box_properties, 
+            medianprops=median_properties,
+            whiskerprops=whisker_properties,
+            capprops=cap_properties,
+            flierprops=flier_properties)
+plt.boxplot([j_cage['d13C'], ju_cage['d13C'], a_cage['d13C'], s_cage['d13C'], o_cage['d13C']],
+            positions = [1.2,2.2,3.2,4.2,5.2], 
+            widths = 0.2,
+            patch_artist=True, 
+            boxprops=box_properties_2, 
+            medianprops=median_properties_2,
+            whiskerprops=whisker_properties_2,
+            capprops=cap_properties_2,
+            flierprops=flier_properties_2)
+plt.boxplot([j_wild['d13C'], ju_wild['d13C'], a_wild['d13C'], s_wild['d13C'], o_wild['d13C']],
+            positions = [1.4,2.4,3.4,4.4,5.4], 
+            widths = 0.2,
+            patch_artist=True, 
+            boxprops=box_properties_3, 
+            medianprops=median_properties_3,
+            whiskerprops=whisker_properties_3,
+            capprops=cap_properties_3,
+            flierprops=flier_properties_3)
+plt.title("a.", loc = 'left')
+plt.xticks([1.2,2.2,3.2,4.2,5.2], [])
+plt.ylim(-18.5, -16.5)
+plt.ylabel('$\delta$$^1$$^3$C')
+
+plt.subplot(3, 1, 2)
+plt.boxplot([j_net['d15N'], ju_net['d15N'], a_net['d15N'], s_net['d15N'], o_net['d15N']], 
+            positions = [1,2,3,4,5], 
+            widths = 0.2,
+            patch_artist=True, 
+            boxprops=box_properties, 
+            medianprops=median_properties,
+            whiskerprops=whisker_properties,
+            capprops=cap_properties,
+            flierprops=flier_properties)
+plt.boxplot([j_cage['d15N'], ju_cage['d15N'], a_cage['d15N'], s_cage['d15N'], o_cage['d15N']],
+            positions = [1.2,2.2,3.2,4.2,5.2], 
+            widths = 0.2,
+            patch_artist=True, 
+            boxprops=box_properties_2, 
+            medianprops=median_properties_2,
+            whiskerprops=whisker_properties_2,
+            capprops=cap_properties_2,
+            flierprops=flier_properties_2)
+plt.boxplot([j_wild['d15N'], ju_wild['d15N'], a_wild['d15N'], s_wild['d15N'], o_wild['d15N']],
+            positions = [1.4,2.4,3.4,4.4,5.4], 
+            widths = 0.2,
+            patch_artist=True, 
+            boxprops=box_properties_3, 
+            medianprops=median_properties_3,
+            whiskerprops=whisker_properties_3,
+            capprops=cap_properties_3,
+            flierprops=flier_properties_3)
+plt.title("b.", loc = 'left')
+plt.xticks([1.2,2.2,3.2,4.2,5.2], [])
+plt.ylim(5, 11)
+plt.ylabel('$\delta$$^1$$^5$N')
+
+
+plt.subplot(3, 1, 3)
 plt.boxplot([j_net['C/N (Molar)'], ju_net['C/N (Molar)'], a_net['C/N (Molar)'], s_net['C/N (Molar)'], o_net['C/N (Molar)']], 
             positions = [1,2,3,4,5], 
             widths = 0.2,
@@ -413,15 +588,238 @@ plt.boxplot([j_wild['C/N (Molar)'], ju_wild['C/N (Molar)'], a_wild['C/N (Molar)'
             whiskerprops=whisker_properties_3,
             capprops=cap_properties_3,
             flierprops=flier_properties_3)
-plt.xticks([1.3,2.3,3.3,4.3,5.3], ['June', 'July', 'August', 'September', 'October'])
+plt.title("c.", loc = 'left')
+plt.xticks([1.2,2.2,3.2,4.2,5.2], ['Jun.', 'Jul.', 'Aug.', 'Sept.', 'Oct.'])
 plt.ylim(3, 6)
-plt.ylabel('C/N (Molar)')
-plt.legend(handles = [
-        mpatches.Patch(color='black', label='Net'),
-        mpatches.Patch(color='blue', label='Cage'),
-        mpatches.Patch(color='red', label='Wild'),
-])
+plt.ylabel('C/N Ratio')
+
+# plt.subplot(2,2,4)
+# plt.boxplot([0, july_net[Dimension.GSI.value], august_net[Dimension.GSI.value], sept_net[Dimension.GSI.value], oct_net[Dimension.GSI.value]], 
+#                 positions = [1,2,3,4,5], 
+#                 widths = 0.2,
+#                 patch_artist=True, 
+#                 boxprops=box_properties, 
+#                 medianprops=median_properties,
+#                 whiskerprops=whisker_properties,
+#                 capprops=cap_properties,
+#                 flierprops=flier_properties)
+# plt.boxplot([0, july_cage[Dimension.GSI.value], august_cage[Dimension.GSI.value], sept_cage[Dimension.GSI.value], oct_cage[Dimension.GSI.value]],
+#                 positions = [1.2,2.2,3.2,4.2,5.2], 
+#                 widths = 0.2,
+#                 patch_artist=True, 
+#                 boxprops=box_properties_2, 
+#                 medianprops=median_properties_2,
+#                 whiskerprops=whisker_properties_2,
+#                 capprops=cap_properties_2,
+#                 flierprops=flier_properties_2)
+# plt.boxplot([0, july_wild[Dimension.GSI.value], august_wild[Dimension.GSI.value], sept_wild[Dimension.GSI.value], oct_wild[Dimension.GSI.value]],
+#                 positions = [1.4,2.4,3.4,4.4,5.4], 
+#                 widths = 0.2,
+#                 patch_artist=True, 
+#                 boxprops=box_properties_3, 
+#                 medianprops=median_properties_3,
+#                 whiskerprops=whisker_properties_3,
+#                 capprops=cap_properties_3,
+#                 flierprops=flier_properties_3)
+# plt.xticks([1.2,2.2,3.2,4.2,5.2], ['Jun.','Jul.', 'Aug.', 'Sept.', 'Oct.'])
+# plt.ylim(0, 45)
+# plt.ylabel('GSI')
+# fig.savefig(f"{figures}/boxplot.png")
 plt.show()
+# plt.legend(handles = [
+#         mpatches.Patch(color='black', label='Net'),
+#         mpatches.Patch(color='blue', label='Cage'),
+#         mpatches.Patch(color='red', label='Wild'),
+# ])
+
+
+
+'''
+Boxplot figure comparing pre and post spawn for muscle and gonad
+'''
+
+#MUSCLE
+fig, ax = plt.subplots(2,1 ,figsize = (5,2))
+plt.subplot(2,1,1)
+plt.boxplot([a_net['C/N (Molar)'],o_net['C/N (Molar)']], 
+                positions = [1,2], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties, 
+                medianprops=median_properties,
+                whiskerprops=whisker_properties,
+                capprops=cap_properties,
+                flierprops=flier_properties)
+plt.boxplot([a_cage['C/N (Molar)'],o_cage['C/N (Molar)']],
+                positions = [1.2,2.2], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties_2, 
+                medianprops=median_properties_2,
+                whiskerprops=whisker_properties_2,
+                capprops=cap_properties_2,
+                flierprops=flier_properties_2)
+plt.boxplot([a_wild['C/N (Molar)'],o_wild['C/N (Molar)']],
+                positions = [1.4,2.4], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties_3, 
+                medianprops=median_properties_3,
+                whiskerprops=whisker_properties_3,
+                capprops=cap_properties_3,
+                flierprops=flier_properties_3)
+plt.title('Muscle')
+plt.xticks([1.2,2.2], [])
+plt.ylabel('C/N Ratio')
+plt.ylim(3, 6)
+plt.subplot(2,1,2)
+plt.title('Gonad')
+plt.boxplot([a_net_gonad['C/N (Molar)'], o_net_gonad['C/N (Molar)']], 
+                positions = [1,2], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties, 
+                medianprops=median_properties,
+                whiskerprops=whisker_properties,
+                capprops=cap_properties,
+                flierprops=flier_properties)
+plt.boxplot([a_cage_gonad['C/N (Molar)'], o_cage_gonad['C/N (Molar)']],
+                positions = [1.2,2.2], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties_2, 
+                medianprops=median_properties_2,
+                whiskerprops=whisker_properties_2,
+                capprops=cap_properties_2,
+                flierprops=flier_properties_2)
+plt.boxplot([a_wild_gonad['C/N (Molar)'], o_wild_gonad['C/N (Molar)']],
+                positions = [1.4,2.4], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties_3, 
+                medianprops=median_properties_3,
+                whiskerprops=whisker_properties_3,
+                capprops=cap_properties_3,
+                flierprops=flier_properties_3)
+plt.xticks([1.2,2.2], ['Aug.','Oct.'])
+plt.ylim(3, 6)
+plt.ylabel('C/N Ratio')
+fig.savefig(f"{figures}/CN_gonad_muscle_boxplot.png")
+# plt.show()
+# plt.legend(handles = [
+#         mpatches.Patch(color='black', label='Net'),
+#         mpatches.Patch(color='blue', label='Cage'),
+#         mpatches.Patch(color='red', label='Wild'),
+# ])
+
+'''
+other figure option
+'''
+
+fig, ax = plt.subplots(1,1, figsize = (2,4))
+plt.subplot(1,1,1)
+plt.boxplot([a_net['C/N (Molar)'],o_net['C/N (Molar)']], 
+                positions = [1,2], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties, 
+                medianprops=median_properties,
+                whiskerprops=whisker_properties,
+                capprops=cap_properties,
+                flierprops=flier_properties)
+plt.boxplot([a_cage['C/N (Molar)'],o_cage['C/N (Molar)']],
+                positions = [1.2,2.2], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties_2, 
+                medianprops=median_properties_2,
+                whiskerprops=whisker_properties_2,
+                capprops=cap_properties_2,
+                flierprops=flier_properties_2)
+plt.boxplot([a_wild['C/N (Molar)'],o_wild['C/N (Molar)']],
+                positions = [1.4,2.4], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties_3, 
+                medianprops=median_properties_3,
+                whiskerprops=whisker_properties_3,
+                capprops=cap_properties_3,
+                flierprops=flier_properties_3)
+plt.boxplot([a_net_gonad['C/N (Molar)'], o_net_gonad['C/N (Molar)']], 
+                positions = [1,2], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties_4, 
+                medianprops=median_properties_4,
+                whiskerprops=whisker_properties_4,
+                capprops=cap_properties_4,
+                flierprops=flier_properties_4)
+plt.boxplot([a_cage_gonad['C/N (Molar)'], o_cage_gonad['C/N (Molar)']],
+                positions = [1.2,2.2], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties_5, 
+                medianprops=median_properties_5,
+                whiskerprops=whisker_properties_5,
+                capprops=cap_properties_5,
+                flierprops=flier_properties_5)
+plt.boxplot([a_wild_gonad['C/N (Molar)'], o_wild_gonad['C/N (Molar)']],
+                positions = [1.4,2.4], 
+                widths = 0.2,
+                patch_artist=True, 
+                boxprops=box_properties_6, 
+                medianprops=median_properties_6,
+                whiskerprops=whisker_properties_6,
+                capprops=cap_properties_6,
+                flierprops=flier_properties_6)
+plt.xticks([1.2,2.2], ['Aug.','Oct.'])
+plt.ylim(3, 6)
+plt.ylabel('C/N Ratio')
+fig.savefig(f"{figures}/CN_gonad_muscle_boxplot.png")
+
+
+cages_gonad_avgs = [j_cage_gonad['C/N (Molar)'].mean(), 
+                    ju_cage_gonad['C/N (Molar)'].mean(), 
+                    a_cage_gonad['C/N (Molar)'].mean(),
+                    s_cage_gonad['C/N (Molar)'].mean(),
+                    o_cage_gonad['C/N (Molar)'].mean()]
+nets_gonad_avgs = [j_net_gonad['C/N (Molar)'].mean(), 
+                    ju_net_gonad['C/N (Molar)'].mean(), 
+                    a_net_gonad['C/N (Molar)'].mean(),
+                    s_net_gonad['C/N (Molar)'].mean(),
+                    o_net_gonad['C/N (Molar)'].mean()]
+wild_gonad_avgs = [j_wild_gonad['C/N (Molar)'].mean(), 
+                    ju_wild_gonad['C/N (Molar)'].mean(), 
+                    a_wild_gonad['C/N (Molar)'].mean(),
+                    s_wild_gonad['C/N (Molar)'].mean(),
+                    o_wild_gonad['C/N (Molar)'].mean()]
+cages_muscle_avg = [j_cage['C/N (Molar)'].mean(), 
+                    ju_cage['C/N (Molar)'].mean(), 
+                    a_cage['C/N (Molar)'].mean(),
+                    s_cage['C/N (Molar)'].mean(),
+                    o_cage['C/N (Molar)'].mean()]
+nets_muscle_avg = [j_net['C/N (Molar)'].mean(), 
+                    ju_net['C/N (Molar)'].mean(), 
+                    a_net['C/N (Molar)'].mean(),
+                    s_net['C/N (Molar)'].mean(),
+                    o_net['C/N (Molar)'].mean()]
+wild_muscle_avg = [j_wild['C/N (Molar)'].mean(), 
+                    ju_wild['C/N (Molar)'].mean(), 
+                    a_wild['C/N (Molar)'].mean(),
+                    s_wild['C/N (Molar)'].mean(),
+                    o_wild['C/N (Molar)'].mean()]
+
+
+'''
+Does not show the same trends as Essie saw...
+'''
+fig, ax = plt.subplots(1,1, figsize = (2,4))
+plt.subplot(1,1,1)
+plt.plot([cages_muscle_avg, nets_muscle_avg, wild_muscle_avg, wild_gonad_avgs, nets_gonad_avgs, cages_gonad_avgs])
+plt.show()
+
+
+
 '''
 Table of averages and standard deviations for d13C, d15N, and C/N (molar) by gear type my month
 '''
