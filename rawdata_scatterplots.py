@@ -266,10 +266,3 @@ if __name__ == "__main__":
     '''
     Dataset was saved after removing outliers. Clean data: 2023IsotopeDataReport-no-outliers.csv 
     '''
-
-
-
-
-
-
-

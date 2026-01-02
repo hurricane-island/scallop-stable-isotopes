@@ -1,7 +1,7 @@
-'''
+"""
 This looks at the GSI data to determine the time of year of spawning for gear types 
-and how that aligns with isotopic signatures
-'''
+and how that aligns with isotopic signatures.
+"""
 
 
 from pathlib import Path
