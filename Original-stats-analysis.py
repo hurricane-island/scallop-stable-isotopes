@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from scipy import stats
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA    
+from sklearn.decomposition import PCA
 from scipy.stats import kruskal
 import seaborn as sns
 
@@ -15,21 +15,21 @@ rawdata = Path(__file__).parent / "data" / "2023IsotopeDataReport-cleanedinexcel
 
 
 df = pd.read_csv(rawdata, header=0, usecols = [
-    'Analysis', 
-    'Sample ID', 
+    'Analysis',
+    'Sample ID',
     'Collection Date',
-    'Gear Type',		
-    'Sex', 	
-    'Tissue Type (Gonad or Muscle)',	
-    'Number in gear type',	
-    'Mass (mg)',	
-    '% N',	
-    'N (umoles)',	
-    'd15N',	
-    '%C',	
-    'C (umoles)',	
-    'd13C',	
-    'C/N (Molar)',	
+    'Gear Type',
+    'Sex',
+    'Tissue Type (Gonad or Muscle)',
+    'Number in gear type',
+    'Mass (mg)',
+    '% N',
+    'N (umoles)',
+    'd15N',
+    '%C',
+    'C (umoles)',
+    'd13C',
+    'C/N (Molar)',
     'Date Run'])
 
 
@@ -38,7 +38,6 @@ for i in range(len(df['Date Run'])):
         df.drop(i, inplace=True)
     else:
         pd.to_datetime(df['Date Run'][i], format = '%m/%d/%y')
-        pass
     # 9/6/23 samples were contaiminated 
 
 df.dropna(subset=['Gear Type'], inplace=True) #only scallops and filters are being plotted
@@ -65,9 +64,6 @@ data_gonad_female = data_gonad.drop(data_gonad[data_gonad['Sex']=='M'].index)
 data_gonad_male = data_gonad.drop(data_gonad[data_gonad['Sex']=='F'].index)
 
 
-'''
-Let's confirm that the data is normally distributed
-'''
 
 # data_muscle['% N'].hist()
 # data_muscle['d13C'].hist()
@@ -75,9 +71,6 @@ Let's confirm that the data is normally distributed
 # data_muscle['C/N (Molar)'].hist()
 # plt.show()
 
-'''
-In the line below, change data_muscle to data_gonad depending on which tissue you want to analyze
-'''
 
 pd.DataFrame(data_muscle)
 anova_data = data_muscle[['d13C', '% N', 'd15N', 'C/N (Molar)', 'Gear Type', 'Collection Date', 'Column Height', 'Farmed or Wild']].dropna() #'Farmed or Wild'
@@ -114,9 +107,6 @@ wild = gear_types.get_group('W')
 
 # print(one_way_anova)
 
-'''
-Let's confirm that the variance is homogeneous
-'''
 # Levene's test for homogeneity of variances for % N
 # a = stats.levene(june['% N'], july['% N'], august['% N'], sept['% N'], october['% N'])
 # b = stats.levene(cages['% N'], nets['% N'], wild['% N'])
@@ -137,12 +127,7 @@ b = stats.levene(cages['C/N (Molar)'], nets['C/N (Molar)'], wild['C/N (Molar)'])
 # print(a)
 # print(b)
 
-
-
-
-'''
-Since ANOVA assumptions are not met, let's try PCA
-'''
+# Since ANOVA assumptions are not met, let's try PCA
 typemap = {
     'C' : 1, 
     'N': 2, 
@@ -179,27 +164,15 @@ for x in df['Tissue Type (Gonad or Muscle)']:
         df['Tissue Type (Gonad or Muscle)'] = df['Tissue Type (Gonad or Muscle)'].replace(x, tissuemap[x])
     else:
         df['Tissue Type (Gonad or Muscle)'] = df['Tissue Type (Gonad or Muscle)'].replace(x, 0)
-
 df = df[df['Tissue Type (Gonad or Muscle)'] != 0]
-
-
-'''
-Based on tissue map, decide if you want only gonad or muscle
-'''
 df = df.drop(df[df['Tissue Type (Gonad or Muscle)'] == 1].index) 
 
 
-
-
-'''
-ADELE COME BACK TO THIS
-'''
 df_muscle_farm = df[df['Farmed or Wild'] != 2]
 df_muscle_wild = df[df['Farmed or Wild'] != 1]
 
 results = kruskal(df_muscle_farm['d15N'], df_muscle_wild['d15N'])
 print(results)
-
 
 df = df.drop(columns = ['Analysis', 'Sample ID', 'Date Run', 'Number in gear type', 'Mass (mg)', 'N (umoles)', 'C (umoles)'])
 
@@ -213,15 +186,11 @@ components = pca.fit_transform(scaled_df)
 explained_variance = pca.explained_variance_ratio_
 loadings = pca.components_.T * np.sqrt(explained_variance) #need to double check this
 
-
 pairplot_df = df[['% N', 'd15N', '%C', 'd13C','C/N (Molar)']]
 pairplot = sns.pairplot(df[['% N', 'd15N', '%C', 'd13C','C/N (Molar)', 'Sex']], hue='Sex')
 sns.color_palette("hls", 8)
 plt.savefig(figures / "pairplot-muscle-collectiondate.png")
 
-'''
-ADELE NEEDS TO MAKE THESE INTO TABLES
-'''
 comp_df = pd.DataFrame(pca.components_, columns = list(df.columns))
 comp_df.to_csv('/Users/adelejordan/Downloads/Hurricane/Isotopes/pca_components4.csv')
 
@@ -230,7 +199,6 @@ loadings_df.to_csv('/Users/adelejordan/Downloads/Hurricane/Isotopes/pca_loadings
 
 summary = [pca.explained_variance_.round(2), pca.explained_variance_ratio_.round(2), pca.explained_variance_ratio_.cumsum().round(2)
 ]
-
 
 fig, ax = plt.subplots(figsize=(8, 4)) 
 ax.axis('off')
@@ -246,10 +214,6 @@ loadings_table.set_fontsize(8)
 
 plt.show()
 
-'''
-Let's make a scree plot to visualize the proportion of variance explained by each principal component
-'''
-
 # pc_numbers = np.arange(len(explained_variance)) + 1
 
 # plt.figure(figsize=(8, 6))
@@ -259,12 +223,6 @@ Let's make a scree plot to visualize the proportion of variance explained by eac
 # plt.ylabel('Proportion of Explained Variance')
 # plt.grid(True)
 # plt.show()
-
-
-
-'''
-Let's make a table to summarize the PCA results
-'''
 
 # pca.explained_variance_.tolist()
 # pca.explained_variance_ratio_.tolist()
@@ -284,12 +242,7 @@ Let's make a table to summarize the PCA results
 #                  loc='center')
 # plt.show()
 
-'''
-Let's look at score plots to visualize how samples relate to each other in the space defined by the principal components
-'''
-
 plt.figure(figsize=(10, 8))
-
 
 # for dates in df['Collection Date']:
 #     plt.scatter(components[:,0], components[:,1], c = df['Collection Date'], cmap='viridis')
@@ -310,8 +263,4 @@ for dates in df['Farmed or Wild']:
 #     plt.xlim(-4,4)
 #     plt.ylim(-4,4)
 
-
 # plt.show()
-
-
-
