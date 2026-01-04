@@ -6,6 +6,7 @@
         "capprops",
         "cmap",
         "facecolor",
+        "FAMD",
         "figsize",
         "flierprops",
         "gonadosomatic",
@@ -17,7 +18,9 @@
         "markersize",
         "medianprops",
         "mpatches",
+        "pairplot",
         "pvalue",
+        "scatterplot",
         "umoles",
         "usecols",
         "viridis",
@@ -26,6 +29,7 @@
         "xlim",
         "xticks",
         "ylabel",
-        "ylim"
+        "ylim",
+        "zscore"
     ]
 }
