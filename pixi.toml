@@ -1,7 +1,8 @@
 [workspace]
 authors = [
     "Adele Jordan <ajae2021@mymail.pomona.edu>",
-    "Keeney <nkeeney@hurricaneisland.net>"
+    "Keeney <nkeeney@hurricaneisland.net>",
+    "Madeleine Regulla <mjrw2808@icloud.com>"
 ]
 channels = ["conda-forge"]
 name = "scallop-stable-isotope-analysis"
@@ -12,9 +13,9 @@ version = "0.1.0"
 
 [dependencies]
 pandas = ">=2.3.3,<3"
-python = ">=3.13.5,<3.14"
-matplotlib = ">=3.10.8,<4"
-scikit-learn = ">=1.8.0,<2"
+python = ">=3.13.5,<3.15"
+matplotlib = ">=3.10.8,<4.1"
+scikit-learn = ">=1.8.0,<3"
 plotly = ">=6.5.0,<7"
 numpy = ">=2.4.0,<3"
 openpyxl = ">=3.1.5,<4"
