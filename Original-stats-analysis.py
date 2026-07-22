@@ -9,10 +9,16 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from scipy.stats import kruskal
 import seaborn as sns
+import statsmodels.formula.api as smf
+from statsmodels.formula.api import mixedlm
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 figures = Path(__file__).parent / "figures"
-rawdata = Path(__file__).parent / "data" / "2023IsotopeDataReport-cleanedinexcel.csv"
+figures.mkdir(parents=True, exist_ok=True)
+rawdata = Path(__file__).parent / "data" / "stable-isotopes-no-outliers.csv"
 
+df = pd.read_csv(rawdata, header=0)
+print(df.columns.tolist())
 
 df = pd.read_csv(rawdata, header=0, usecols = [
     'Analysis',
@@ -20,7 +26,7 @@ df = pd.read_csv(rawdata, header=0, usecols = [
     'Collection Date',
     'Gear Type',
     'Sex',
-    'Tissue Type (Gonad or Muscle)',
+    'Tissue Type',
     'Number in gear type',
     'Mass (mg)',
     '% N',
@@ -51,11 +57,11 @@ df.insert(5, 'Farmed or Wild', 0)
 mapping_farmvswild = {'C': '1', 'N': '1', 'W': '2'}
 df['Farmed or Wild'] = df['Gear Type'].map(mapping_farmvswild) #C and N are farmed, W is wild
 
-data_muscle = df.dropna(subset = ['Tissue Type (Gonad or Muscle)'])
-data_muscle = data_muscle.drop(data_muscle[data_muscle['Tissue Type (Gonad or Muscle)'] == 'G'].index)
+data_muscle = df.dropna(subset = ['Tissue Type'])
+data_muscle = data_muscle.drop(data_muscle[data_muscle['Tissue Type'] == 'G'].index)
 
-data_gonad = df.dropna(subset = ['Tissue Type (Gonad or Muscle)'])
-data_gonad = data_gonad.drop(data_gonad[data_gonad['Tissue Type (Gonad or Muscle)'] == 'M'].index)
+data_gonad = df.dropna(subset = ['Tissue Type'])
+data_gonad = data_gonad.drop(data_gonad[data_gonad['Tissue Type'] == 'M'].index)
 
 data_muscle_female = data_muscle.drop(data_muscle[data_muscle['Sex']=='M'].index)
 data_muscle_male = data_muscle.drop(data_muscle[data_muscle['Sex']=='F'].index)
@@ -123,11 +129,7 @@ wild = gear_types.get_group('W')
 a = stats.levene(june['C/N (Molar)'], july['C/N (Molar)'], august['C/N (Molar)'], sept['C/N (Molar)'], october['C/N (Molar)'])
 b = stats.levene(cages['C/N (Molar)'], nets['C/N (Molar)'], wild['C/N (Molar)'])
 
-# If p > 0.05, we can assume homogeneity of variances
-# print(a)
-# print(b)
-
-# Since ANOVA assumptions are not met, let's try PCA
+gear = df["Gear Type"].copy()
 typemap = {
     'C' : 1, 
     'N': 2, 
@@ -159,43 +161,67 @@ tissuemap = {
     'M': 2
 }
 
-for x in df['Tissue Type (Gonad or Muscle)']:
+for x in df['Tissue Type']:
     if x in tissuemap:
-        df['Tissue Type (Gonad or Muscle)'] = df['Tissue Type (Gonad or Muscle)'].replace(x, tissuemap[x])
+        df['Tissue Type'] = df['Tissue Type'].replace(x, tissuemap[x])
     else:
-        df['Tissue Type (Gonad or Muscle)'] = df['Tissue Type (Gonad or Muscle)'].replace(x, 0)
-df = df[df['Tissue Type (Gonad or Muscle)'] != 0]
-df = df.drop(df[df['Tissue Type (Gonad or Muscle)'] == 1].index) 
+        df['Tissue Type'] = df['Tissue Type'].replace(x, 0)
+df = df[df['Tissue Type'] != 0]
+df = df.drop(df[df['Tissue Type'] == 1].index) 
 
+df_muscle_farm = df[df['Farmed or Wild'] == '1']
+df_muscle_wild = df[df['Farmed or Wild'] == '2']
 
-df_muscle_farm = df[df['Farmed or Wild'] != 2]
-df_muscle_wild = df[df['Farmed or Wild'] != 1]
+print("Farmed samples:", len(df_muscle_farm))
+print("Wild samples:", len(df_muscle_wild))
 
 results = kruskal(df_muscle_farm['d15N'], df_muscle_wild['d15N'])
 print(results)
 
-df = df.drop(columns = ['Analysis', 'Sample ID', 'Date Run', 'Number in gear type', 'Mass (mg)', 'N (umoles)', 'C (umoles)'])
-
 # print(df.isna().sum())
-df = pd.DataFrame(df)
+df = df.replace([np.inf, -np.inf], np.nan)
+df = df.dropna()
 
+farmwild = df["Farmed or Wild"].copy()
+gear = df["Gear Type"].copy() 
+
+df = df.drop(columns = ['Analysis', 'Sample ID', 'Date Run', 'Number in gear type', 'Mass (mg)', 'N (umoles)', 'C (umoles)', 'Gear Type', 'Tissue Type', 'Farmed or Wild'])
+
+print(df.isna().sum())
+print(df.dtypes)
+print(df.describe())
+
+pca_vars = df[
+    [
+        '% N',
+        'd15N',
+        '%C',
+        'd13C',
+        'C/N (Molar)'
+    ]
+]
 std_scaler = StandardScaler()
-scaled_df = std_scaler.fit_transform(df)
+scaled_df = std_scaler.fit_transform(pca_vars)
 pca = PCA(n_components = None)
 components = pca.fit_transform(scaled_df)
 explained_variance = pca.explained_variance_ratio_
 loadings = pca.components_.T * np.sqrt(explained_variance) #need to double check this
 
 pairplot_df = df[['% N', 'd15N', '%C', 'd13C','C/N (Molar)']]
-pairplot = sns.pairplot(df[['% N', 'd15N', '%C', 'd13C','C/N (Molar)', 'Sex']], hue='Sex')
+pairplot = sns.pairplot(df[['% N', 'd15N', '%C', 'd13C','C/N (Molar)']])
 sns.color_palette("hls", 8)
 plt.savefig(figures / "pairplot-muscle-collectiondate.png")
 
-comp_df = pd.DataFrame(pca.components_, columns = list(df.columns))
-comp_df.to_csv('/Users/adelejordan/Downloads/Hurricane/Isotopes/pca_components4.csv')
+comp_df = pd.DataFrame(pca.components_, columns=pca_vars.columns
+)
+comp_df.to_csv(figures / "pca_components4.csv")
 
-loadings_df = pd.DataFrame(pca.components_.T * np.sqrt(explained_variance), columns = list(df.columns))
-loadings_df.to_csv('/Users/adelejordan/Downloads/Hurricane/Isotopes/pca_loadings4.csv')
+loadings_df = pd.DataFrame(
+    pca.components_.T,
+    columns=[f"PC{i+1}" for i in range(pca.n_components_)],
+    index=pca_vars.columns
+)
+loadings_df.to_csv(figures / "pca_loadings4.csv")
 
 summary = [pca.explained_variance_.round(2), pca.explained_variance_ratio_.round(2), pca.explained_variance_ratio_.cumsum().round(2)
 ]
@@ -203,12 +229,14 @@ summary = [pca.explained_variance_.round(2), pca.explained_variance_ratio_.round
 fig, ax = plt.subplots(figsize=(8, 4)) 
 ax.axis('off')
 
-loadings_table = ax.table(cellText = summary,
-                 colLabels = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5', 'PC6', 'PC7', 'PC8', 'PC9', 'PC10', 'PC11', 'PC12', 'PC13'],
-                 rowLabels = ['Explained Var', 'Explained Var Ratio', 'Cum Exp Var Ratio'],
-                 cellLoc = 'center',
-                 rowLoc = 'center',
-                 loc = 'center')
+loadings_table = ax.table(
+    cellText=summary,
+    colLabels=[f"PC{i+1}" for i in range(pca.n_components_)],
+    rowLabels=['Explained Var', 'Explained Var Ratio', 'Cum Exp Var Ratio'],
+    cellLoc='center',
+    rowLoc='center',
+    loc='center'
+)
 loadings_table.auto_set_font_size(False)
 loadings_table.set_fontsize(8) 
 
@@ -251,11 +279,38 @@ plt.figure(figsize=(10, 8))
 #     plt.ylim(-4,4)
 
 
-for dates in df['Farmed or Wild']:
-    plt.scatter(components[:,0], components[:,1], c = df['Farmed or Wild'].astype('category').cat.codes, cmap='viridis')
-    plt.title('PCA Score Plot: PC1 vs PC2')
-    plt.xlim(-4,4)
-    plt.ylim(-4,4)
+plt.figure(figsize=(10,8))
+
+colors = {
+    1: "blue",   # Cage
+    2: "green",  # Net
+    3: "red"     # Wild
+}
+
+labels = {
+    1: "Cage",
+    2: "Net",
+    3: "Wild"
+}
+
+for gear_type in gear.unique():
+    idx = gear == gear_type
+    
+    plt.scatter(
+        components[idx,0],
+        components[idx,1],
+        c=colors[gear_type],
+        label=gear_type,
+        alpha=0.7
+    )
+
+plt.xlabel("PC1")
+plt.ylabel("PC2")
+plt.title("PCA Score Plot: Cage vs Net vs Wild")
+plt.legend(title="Gear Type")
+plt.xlim(-4, 4)
+plt.ylim(-4, 4)
+plt.show()
 
 # for dates in df['Collection Date']:
 #     plt.scatter(components[:,0], components[:,1], c = df['Collection Date'].astype('category').cat.codes, cmap='viridis')
@@ -264,3 +319,25 @@ for dates in df['Farmed or Wild']:
 #     plt.ylim(-4,4)
 
 # plt.show()
+
+# for dates in df['Collection Date']:
+#     plt.scatter(components[:,0], components[:,1], c = df['Collection Date'].astype('category').cat.codes, cmap='viridis')
+#     plt.title('PCA Score Plot: PC1 vs PC2')
+#     plt.xlim(-4,4)
+#     plt.ylim(-4,4)
+
+# plt.show()
+environment_file = Path(__file__).parent / "data" / "temperature-and-light.csv"
+env = pd.read_csv(environment_file)
+env["Date-Time (EDT)"] = pd.to_datetime(
+    env["Date-Time (EDT)"]
+)
+# Extract date
+env["Date"] = env["Date-Time (EDT)"].dt.date
+
+# Average hourly environmental data into daily means
+env_daily = (
+    env.groupby("Date")
+    .mean(numeric_only=True)
+    .reset_index()
+)
