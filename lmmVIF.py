@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 import statsmodels.formula.api as smf
 from pathlib import Path
+import statsmodels.api as sm
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+import matplotlib.pyplot as plt
 
 figures = Path(__file__).parent / "figures"
 figures.mkdir(parents=True, exist_ok=True)
@@ -126,16 +129,50 @@ lmm_clean = lmm_data[
 print("LMM samples retained:", len(lmm_clean))
 print(lmm_clean.isna().sum())
 
+# VIF: Check for multicollinearity using Variance Inflation Factor (VIF)
+X = pd.get_dummies(
+    lmm_clean[["Temperature", "Light", "Gear"]],
+    drop_first=True,
+    dtype=float
+)
+X = sm.add_constant(X)
+vif = pd.DataFrame({
+    "Variable": X.columns,
+    "VIF": [
+        variance_inflation_factor(X.values, i)
+        for i in range(X.shape[1])
+    ]
+})
+# Remove intercept from reporting table
+vif = vif[vif["Variable"] != "const"]
+# Round values
+vif = vif.round(3)
+print(vif)
+#plot the VIF table
+fig, ax = plt.subplots(figsize=(5, 2))
+ax.axis("off")
+table = ax.table(
+    cellText=vif.values,
+    colLabels=vif.columns,
+    loc="center"
+)
+table.auto_set_font_size(False)
+table.set_fontsize(12)
+table.scale(1, 2)
+for (row, col), cell in table.get_celld().items():
+    if row == 0:
+        cell.set_text_props(weight="bold")
+plt.title("Variance Inflation Factor (VIF)")
+plt.show()
+
+#run lmm for each isotopic variance
 model_d13C = smf.mixedlm(
     "d13C ~ Temperature + Light + C(Gear)",
     data=lmm_clean,
     groups=lmm_clean["Collection Date"]
 )
-
 result_d13C = model_d13C.fit()
 print(result_d13C.summary())
-
-
 model_d15N = smf.mixedlm(
     "d15N ~ Temperature + Light + C(Gear)",
     data=lmm_clean,
@@ -151,33 +188,7 @@ model_CN = smf.mixedlm(
 result_CN = model_CN.fit()
 print(result_CN.summary())
 
-def linear_mixed_model(df):
-    subset = df[
-        [
-            Dimension.NITROGEN_FRACTIONATION.value,
-            Dimension.GEAR.value,
-            Dimension.COLLECTION_DATE.value,
-            Dimension.TISSUE.value,
-        ]
-    ].dropna()
-
-    subset = subset.rename(columns={
-        Dimension.NITROGEN_FRACTIONATION.value: "d15N",
-        Dimension.GEAR.value: "Gear",
-        Dimension.COLLECTION_DATE.value: "Month",
-        Dimension.TISSUE.value: "Tissue",
-    })
-
-    model = mixedlm(
-        "d15N ~ C(Gear) + C(Tissue)",
-        data=subset,
-        groups=subset["Month"],
-    )
-    result = model.fit()
-    print(result.summary())
-
 #lmm with no light therefore wild scallops included
-
 lmm_env = data_muscle[
     [
         "d13C",
@@ -204,7 +215,6 @@ lmm_env = pd.merge(
     on="Date",
     how="left"
 )
-
 def assign_environment(row):
     if row["Gear"] == "C":
         return pd.Series({
@@ -228,7 +238,6 @@ lmm_env[["Temperature", "Light"]] = lmm_env.apply(
     assign_environment,
     axis=1
 )
-
 # Keep only complete environmental observations 
 lmm_env_clean = lmm_env.dropna(
     subset=[
@@ -238,10 +247,8 @@ lmm_env_clean = lmm_env.dropna(
         "Temperature",
     ]
 )
-
 print("Environmental LMM samples:", len(lmm_env_clean))
 print(lmm_env_clean["Gear"].value_counts())
-
 # d13C model
 model_d13C_env = smf.mixedlm(
     "d13C ~ Temperature + C(Gear)",
@@ -250,7 +257,6 @@ model_d13C_env = smf.mixedlm(
 )
 result_d13C_env = model_d13C_env.fit()
 print(result_d13C_env.summary())
-
 # d15N model
 model_d15N_env = smf.mixedlm(
     "d15N ~ Temperature + C(Gear)",
@@ -268,6 +274,135 @@ model_CN_env = smf.mixedlm(
 result_CN_env = model_CN_env.fit()
 print(result_CN_env.summary())
 
+#results into tables
+def lmm_results_table(result, response_name):
+    table = pd.DataFrame({
+        "Response": response_name,
+        "Predictor": result.params.index,
+        "Estimate": result.params.values,
+        "SE": result.bse.values,
+        "z-value": result.tvalues.values,
+        "p-value": result.pvalues.values,
+        "95% CI Lower": result.conf_int()[0],
+        "95% CI Upper": result.conf_int()[1]
+    })
+    # Remove intercept and random effect variance
+    table = table[
+        ~table["Predictor"].isin(["Intercept", "Group Var"])
+    ]
+
+    return table
+# Create combined LMM table
+light_table = pd.concat([
+    lmm_results_table(result_d13C, "d13C"),
+    lmm_results_table(result_d15N, "d15N"),
+    lmm_results_table(result_CN, "C/N")
+])
+light_table = light_table.round(3)
+# Export
+light_table.to_csv(
+    "LMM_light_table.csv",
+    index=False
+)
+print("LMM Results: Light Included")
+print(light_table)
+#cage used as reference level for gear type
+
+#plot lmm with light
+fig, ax = plt.subplots(figsize=(12, 6))
+ax.axis("off")
+table = ax.table(
+    cellText=light_table.values,
+    colLabels=light_table.columns,
+    loc="center",
+    cellLoc="center"
+)
+table.auto_set_font_size(False)
+table.set_fontsize(8)
+table.scale(1, 1.5)
+# Make header row bold
+for (row, col), cell in table.get_celld().items():
+    if row == 0:
+        cell.set_text_props(weight="bold")
+        cell.set_facecolor("#d9eaf7")
+
+plt.title("Linear Mixed Model Results Light + Temperature", fontsize=14)
+plt.tight_layout()
+# Save figure
+plt.savefig(figures / "LMM_light_table.png", dpi=300, bbox_inches="tight")
+plt.show()
+
+# Save table
+light_table.to_csv(
+    figures / "LMM_light_table.csv",
+    index=False
+)
+
+#plot table with no light
+temp_table = pd.concat([
+    lmm_results_table(result_d13C_env, "d13C"),
+    lmm_results_table(result_d15N_env, "d15N"),
+    lmm_results_table(result_CN_env, "C/N")
+])
+temp_table = temp_table.round(3)
+temp_table.to_csv(
+    figures / "LMM_temperature_only_table.csv",
+    index=False
+)
+print("LMM Results: Temperature Only")
+print(temp_table)
+#cage used as reference level for gear type
+
+#plot lmm with no light
+fig, ax = plt.subplots(figsize=(12, 6))
+ax.axis("off")
+table = ax.table(
+    cellText=temp_table.values,
+    colLabels=temp_table.columns,
+    loc="center",
+    cellLoc="center"
+)
+table.auto_set_font_size(False)
+table.set_fontsize(8)
+table.scale(1, 1.5)
+# Make header row bold
+for (row, col), cell in table.get_celld().items():
+    if row == 0:
+        cell.set_text_props(weight="bold")
+        cell.set_facecolor("#d9eaf7")
+
+plt.title("Linear Mixed Model Results Temperature Only", fontsize=14)
+plt.tight_layout()
+# Save figure
+plt.savefig(figures / "LMM_temperature_only_table.png", dpi=300, bbox_inches="tight")
+plt.show()
+
+vif.to_csv("VIF_results.csv", index=False)
 #temp data not merging properly so need 
 # to look into this! also because wild temp
 # doesnt exist for the first month only 4 months are being used.
+
+# def linear_mixed_model(df):
+#    subset = df[
+#        [
+#            Dimension.NITROGEN_FRACTIONATION.value,
+ #           Dimension.GEAR.value,
+ #           Dimension.COLLECTION_DATE.value,
+ #           Dimension.TISSUE.value,
+ #       ]
+ #   ].dropna()
+#
+ #   subset = subset.rename(columns={
+ #       Dimension.NITROGEN_FRACTIONATION.value: "d15N",
+ #       Dimension.GEAR.value: "Gear",
+ #       Dimension.COLLECTION_DATE.value: "Month",
+#       Dimension.TISSUE.value: "Tissue",
+ #   })
+
+ #   model = mixedlm(
+ #       "d15N ~ C(Gear) + C(Tissue)",
+ #       data=subset,
+ #       groups=subset["Month"],
+ #   )
+ #   result = model.fit()
+ #   print(result.summary())
