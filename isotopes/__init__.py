@@ -30,24 +30,18 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from prince import FAMD
 from seaborn import scatterplot, pairplot
-from click import option, group
+from click import option, group, Choice
 
 
 bad_run_dates = {"9/6/23"}  # use Set() as more generic lookup than single value
-figures = Path(__file__).parent / "figures"
-data_dir = Path(__file__).parent / "data"
+figures = Path(__file__).parent / "../figures"
+data_dir = Path(__file__).parent / "../data"
 raw_data = data_dir / "gonadosomatic-index.csv"
 isotopes_no_outliers = data_dir / "stable-isotopes-no-outliers.csv"
 isotopes_raw = data_dir / "stable-isotopes.csv"
 env_data = data_dir / "temperature-and-light.csv"
 custom_colors = ("black", "blue", "red")
 
-
-@group()
-def cli():
-    """
-    Command line interface for the scallop stable isotope analysis module.
-    """
 
 @group()
 def summarize():
@@ -74,15 +68,16 @@ def figure_size(default_size: tuple[float, float]):
         )(cmd)
     return decorator
 
-def tissue_type_option(default_tissue: str):
+def tissue_type_option(default: TissueType):
     """
     Decorator to add a --tissue-type option to a Click command.
     """
     def decorator(cmd):
         return option(
             "--tissue-type",
-            default=default_tissue,
-            help="Tissue type to analyze (e.g., 'M' for muscle, 'G' for gonad).",
+            default=default,
+            help="Tissue type to analyze.",
+            type=Choice(TissueType, case_sensitive=False),
         )(cmd)
     return decorator
 
@@ -161,13 +156,30 @@ class EnvDimension(Enum):
     NET_BOTTOM_LUM = "Net Bottom, Light (lum)"
     WILD_TEMP = "Wild, Temperature (°F)"
 
-
-def load_temperature_data() -> DataFrame:
+class CultureMethod(Enum):
     """
-    Load the temperature data from the CSV file.
+    Enum for the different culture methods.
+    """
+
+    CAGE = "C"
+    NET = "N"
+    WILD = "W"
+
+class TissueType(Enum):
+    """
+    Enum for the different tissue types.
+    """
+
+    MUSCLE = "M"
+    GONAD = "G"
+
+
+def load_temperature_data(filepath: Path) -> DataFrame:
+    """
+    Load environmental data from the CSV file.
     """
     df = read_csv(
-        env_data,
+        filepath,
         header=0,
         usecols=[
             EnvDimension.DATE.value,
@@ -178,7 +190,7 @@ def load_temperature_data() -> DataFrame:
     )
     times = to_datetime(df[EnvDimension.DATE.value], format="%m/%d/%y %H:%M")
     df[EnvDimension.DATE.value] = times
-    df["Month"] = times.dt.month
+    df["Month"] = times.dt.month.map(dict((i, month_name[i]) for i in range(1, 13)))
     return df
 
 
@@ -284,72 +296,6 @@ def load_scatter_data(filepath: Path) -> DataFrame:
     ]  # Only muscle and gonad tissue
 
 
-def analysis_of_variance(df: DataFrame) -> DataFrame:
-    """
-    Perform ANOVA on the selected tissue data using
-    Ordinary Least Squares (OLS) model.
-    """
-    subset = df[
-        [
-            Dimension.NITROGEN_PERCENTAGE.value,
-            Dimension.GEAR.value,
-            Dimension.COLLECTION_DATE.value,
-        ]
-    ].dropna()
-
-    # Make columns categorical
-    subset[Dimension.GEAR.value] = subset[Dimension.GEAR.value].astype("category")
-    subset[Dimension.COLLECTION_DATE.value] = subset[
-        Dimension.COLLECTION_DATE.value
-    ].astype("category")
-
-    subset = subset.rename(
-        columns={
-            Dimension.NITROGEN_PERCENTAGE.value: "N",
-            Dimension.GEAR.value: "Gear",
-            Dimension.COLLECTION_DATE.value: "Month",
-        }
-    )
-    model = ols("N ~ C(Gear) + C(Month) + C(Gear):C(Month)", data=subset).fit()
-    return anova_lm(model, type=2)  # Type II sum of squares
-
-
-def levenes_test_month(df: DataFrame, column: str):
-    """
-    Levene's test for homogeneity of variances for a given column.
-
-    If p > 0.05, we can assume homogeneity of variances
-    """
-    monthly = df.groupby(Dimension.COLLECTION_DATE.value)
-    june = monthly.get_group(6)
-    july = monthly.get_group(7)
-    august = monthly.get_group(8)
-    september = monthly.get_group(9)
-    october = monthly.get_group(10)
-    return levene(
-        june[column],
-        july[column],
-        august[column],
-        september[column],
-        october[column],
-    )
-
-
-def levenes_test_gear(df: DataFrame, column: str):
-    """
-    Levene's test for homogeneity of variances for a given column.
-
-    If p > 0.05, we can assume homogeneity of variances
-    """
-
-    gear_types = df.groupby(Dimension.GEAR.value)
-    cages = gear_types.get_group("C")
-    nets = gear_types.get_group("N")
-    wild = gear_types.get_group("W")
-    return levene(cages[column], nets[column], wild[column])
-
-
-# pylint: disable=redefined-outer-name
 def quantize_categorical_column(
     df: DataFrame, column_name: str, categories: Dict[str, int]
 ) -> DataFrame:
@@ -387,81 +333,164 @@ def return_column_to_categorical(
     return df
 
 @plot.command("tissue-histograms")
-@option("--tissue-type", default="M", help="Tissue type to plot histograms for (default: 'M' for muscle).")
+@tissue_type_option(TissueType.MUSCLE)
 @figure_size((8, 6))
-def plot_tissue_histograms(figsize, tissue_type):
+def plot_tissue_histograms(
+    figsize: tuple[float, float],
+    tissue_type: TissueType
+):
     """
-    Visually determine whether data is appears normally distributed for a given tissue type.
+    Visually determine whether data appears normally distributed for a given tissue type.
+    This is intended as a simple diagnostic, and should be followed up with a more rigorous statistical test for normality.
     """
-    df = load_scatter_data(isotopes_no_outliers)
-    partition = df[df[Dimension.TISSUE.value] == tissue_type]
-    custom_colors = ("black", "blue", "red")
+    df = read_csv(
+        isotopes_no_outliers,
+        header=0,
+        usecols=[
+            Dimension.TISSUE.value,
+            Dimension.DATE_RUN.value,
+            Dimension.NITROGEN_FRACTIONATION.value,
+            Dimension.CARBON_FRACTIONATION.value,
+            Dimension.MOLAR_RATIO.value,
+        ],
+    )
+    # Remove known bad samples, and select only one tissue type for analysis
+    mask = (~df[Dimension.DATE_RUN.value].isin(bad_run_dates)) & \
+        (df[Dimension.TISSUE.value] == tissue_type.value)
+
+    # Tissue type is already filtered, so only need to check gear and collection date
+    df = df[mask] \
+        .drop(columns=[Dimension.DATE_RUN.value, Dimension.TISSUE.value]) \
+        .dropna()
+    
     fig, ax = subplots(figsize=figsize)
-    for dim in [
+    for dim, color in zip((
         Dimension.NITROGEN_FRACTIONATION.value,
         Dimension.CARBON_FRACTIONATION.value,
         Dimension.MOLAR_RATIO.value,
-    ]:
-        partition[dim].hist(
+    ), ("black", "blue", "red")):
+        series: Series = df[dim]
+        series.hist(
             ax=ax,
             label=dim,
-            color=custom_colors[["d15N", "d13C", "C/N (Molar)"].index(dim)],
+            color=color,
         )
     ax.legend()
     ax.grid(False)
-    fig.savefig(f"{figures}/tissue_histograms_{tissue_type}.png")
+    fig.savefig(f"{figures}/tissue_histograms_{tissue_type.name.lower()}.png")
 
 @summarize.command("anova")
-@tissue_type_option("M")
-def summarize_analsysis_of_variance(
-    tissue_type: str
+@tissue_type_option(TissueType.MUSCLE)
+def summarize_analysis_of_variance(
+    tissue_type: TissueType
 ):
-    df = load_scatter_data(isotopes_no_outliers)
-    partition = df[df[Dimension.TISSUE.value] == tissue_type]
-    print(f"\nAnalysis of Variance\nTissue: {tissue_type}\n")
-    print(analysis_of_variance(partition))
+    """
+    Summarize Analysis of Variance (ANOVA) for a given tissue type. This is only valid
+    if the assumptions of ANOVA are met, which can be checked using Levene's test for 
+    homogeneity of variances.
+
+    Can only be run for a single variable at a time.
+
+    Because tissue types have an effect, it only makes sense to run this on a single
+    tissue partition. Generally this will be muscle.
+    """
+    analysis = Dimension.NITROGEN_PERCENTAGE
+    df = read_csv(
+            isotopes_no_outliers,
+            header=0,
+            usecols=[
+                Dimension.COLLECTION_DATE.value,
+                Dimension.GEAR.value,
+                Dimension.TISSUE.value,
+                Dimension.DATE_RUN.value,
+                analysis.value
+            ],
+        )
+    
+    # Remove known bad samples, and select only one tissue type for analysis
+    mask = (~df[Dimension.DATE_RUN.value].isin(bad_run_dates)) & \
+        (df[Dimension.TISSUE.value] == tissue_type.value)
+    # Tissue type is already filtered, so only need to check gear and collection date
+    df = df[mask].drop(columns=[Dimension.DATE_RUN.value, Dimension.TISSUE.value]).dropna()
+
+    # Patsy syntax: C() = categorical, Q() = wrap special characters
+    formula = (
+        f"Q('{analysis.value}') ~ "
+        f"C(Q('{Dimension.GEAR.value}')) + "
+        f"C(Q('{Dimension.COLLECTION_DATE.value}')) + "
+        f"C(Q('{Dimension.GEAR.value}')):C(Q('{Dimension.COLLECTION_DATE.value}'))"
+    )
+    model = ols(formula, data=df).fit()
+    result = anova_lm(model, type=2)  # Type II sum of squares
+
+    print((
+        f"Analysis of Variance\n"
+        f"Tissue: {tissue_type.name.lower()}\n"
+        f"Variable: {analysis.value}\n"
+    ))
+    print(result)
+
 
 @summarize.command("levenes")
-@tissue_type_option("M")
+@tissue_type_option(TissueType.MUSCLE)
+@option(
+    "--group-by",
+    required=True,
+    help="Dimension to group by.",
+    type=Choice([Dimension.GEAR, Dimension.COLLECTION_DATE], case_sensitive=False),
+)
+@option(
+    "--variable",
+    required=True,
+    help="Dimension to test for homogeneity of variances.",
+    type=Choice([
+        Dimension.NITROGEN_FRACTIONATION,
+        Dimension.CARBON_FRACTIONATION,
+        Dimension.MOLAR_RATIO
+    ], case_sensitive=False)
+)
 def summarize_levenes_test(
-    tissue_type: str
+    tissue_type: TissueType,
+    group_by: Dimension,
+    variable: Dimension
 ):
     """
-    Summarize Levene's test for homogeneity of variances.
+    Summarize Levene's test for homogeneity of variances. This is used to determine whether the assumptions of ANOVA are met for a given tissue type. If the p-value is greater than 0.05, we can assume homogeneity of variances and proceed with ANOVA.
     """
-    df = load_scatter_data(isotopes_no_outliers)
-    partition = df[df[Dimension.TISSUE.value] == tissue_type]
-    
-    print(f"\nLevene's Test of Homogeneity of Variance\nTissue: {tissue_type}\n")
+    df = read_csv(
+        isotopes_no_outliers,
+        header=0,
+        usecols=[
+            group_by.value,
+            Dimension.TISSUE.value,
+            Dimension.DATE_RUN.value,
+            variable.value
+        ],
+    )
+    # Remove known bad samples, and select only one tissue type for analysis
+    mask = (~df[Dimension.DATE_RUN.value].isin(bad_run_dates)) & \
+        (df[Dimension.TISSUE.value] == tissue_type.value)
 
-    for dim in [
-        Dimension.CARBON_FRACTIONATION.value,
-        Dimension.NITROGEN_FRACTIONATION.value,
-        Dimension.MOLAR_RATIO.value,
-    ]:
-        print(f"\nDimension: {dim}")
-        a = levenes_test_month(partition, dim)
-        print(
-            "Month:",
-            a.statistic,
-            "P-value:",
-            a.pvalue,
-            "(Passed)" if a.pvalue > 0.05 else "(Failed)",
-        )
-        b = levenes_test_gear(partition, dim)
-        print(
-            "Gear:",
-            b.statistic,
-            "P-value:",
-            b.pvalue,
-            "(Passed)" if b.pvalue > 0.05 else "(Failed)",
-        )
+    # Tissue type is already filtered, so only need to check gear and collection date
+    groupby_result = df[mask] \
+        .drop(columns=[Dimension.DATE_RUN.value, Dimension.TISSUE.value]) \
+        .dropna() \
+        .groupby(group_by.value)
 
+    # Test expects bins, not necessarily equal sized
+    groups = [each for _, each in groupby_result[variable.value]]
+    result = levene(*groups)
 
-def quantize_and_run_pca():
-    """
-    Quantize categorical columns and run PCA on the muscle tissue data. This does not work well with categorical data, and is likely to produce misleading results. Use FAMD instead when there is categorical data present.
-    """
+    print((
+        f"\nLevene's Test of Homogeneity of Variance"
+        f"\nTissue: {tissue_type.name.lower()}"
+        f"\nDimension: {variable.name.lower()} ({variable.value})"
+        f"\nGroup by: {group_by.name}"
+        f"\nResult: {result.statistic}"
+        f"\nP-value: {result.pvalue}"
+        f"\nHomogenous: {result.pvalue > 0.05}"
+    ))
+
 
 @plot.command("pca")
 def plot_pca_analysis():
@@ -585,7 +614,6 @@ def plot_famd_analysis_2d(
             zorder=2,
         )
 
-    
     if convex_hulls:
         month_groups = inner_join.groupby(Dimension.COLLECTION_DATE.value)
         linestyles = ["--", "-", "-."]
@@ -794,15 +822,33 @@ def plot_pairs_seaborn():
     """
     Pairplot of nitrogen fractionation, carbon fractionation, and molar ratio, colored by gear type.
     """
-    tissue = load_scatter_data(isotopes_no_outliers)
-    tissue = quantize_categorical_column(
-        tissue, Dimension.GEAR.value, {"C": 1, "N": 2, "W": 3}
+    df = read_csv(
+        isotopes_no_outliers,
+        header=0,
+        usecols=[
+            Dimension.TISSUE.value,
+            Dimension.DATE_RUN.value,
+            Dimension.NITROGEN_FRACTIONATION.value,
+            Dimension.CARBON_FRACTIONATION.value,
+            Dimension.MOLAR_RATIO.value,
+            Dimension.GEAR.value,
+        ],
     )
-    tissue = return_column_to_categorical(
-        tissue, Dimension.GEAR.value, {1: "Cage", 2: "Net", 3: "Wild"}
+    # Remove known bad samples, and select only one tissue type for analysis
+    mask = (~df[Dimension.DATE_RUN.value].isin(bad_run_dates)) & (
+        df[Dimension.TISSUE.value].isin({"M", "G"})
+    )
+    df[Dimension.GEAR.value] = df[Dimension.GEAR.value].map(
+        {"C": "Cage", "N": "Net", "W": "Wild"}
+    )
+    # Tissue type is already filtered, so only need to check gear and collection date
+    df = (
+        df[mask]
+        .drop(columns=[Dimension.DATE_RUN.value, Dimension.TISSUE.value])
+        .dropna()
     )
     pairplot(
-        tissue[
+        df[
             [
                 Dimension.NITROGEN_FRACTIONATION.value,
                 Dimension.CARBON_FRACTIONATION.value,
@@ -816,75 +862,113 @@ def plot_pairs_seaborn():
     ).savefig(figures / "new-pairplot-all-tissue-gear.png")
 
 @plot.command("scatter-monthly-gear")
-def plot_scatter_monthly_gear():
+@tissue_type_option(TissueType.MUSCLE)
+@figure_size((10, 3))
+def plot_scatter_monthly_gear(
+    tissue_type: TissueType,
+    figsize: tuple[float, float]
+):
     """
     Scatter plot of molar ratio vs carbon fractionation, separated 
     into subplots for each month.
     """
-    tissue = load_scatter_data(isotopes_no_outliers)
-    groups = tissue.groupby([Dimension.TISSUE.value, Dimension.COLLECTION_DATE.value])
-    context = subplots(1, 5, figsize=(10, 3), sharex=False, sharey=False)
-    fig = context[0]
-    ax: list[Axes] = context[1] # force type hinting
-    for ind, month in enumerate([6, 7, 8, 9, 10]):
-        group = groups.get_group(("M", month))
-        ax[ind].scatter(
-            group[Dimension.MOLAR_RATIO.value],
-            group[Dimension.CARBON_FRACTIONATION.value],
-            c=group[Dimension.GEAR.value].map({"C": "tab:cyan", "N": "tab:blue", "W": "tab:pink"}),
-            marker="x",
-            cmap="tab10",
+    df = read_csv(
+            isotopes_no_outliers,
+            header=0,
+            usecols=[
+                Dimension.TISSUE.value,
+                Dimension.DATE_RUN.value,
+                Dimension.CARBON_FRACTIONATION.value,
+                Dimension.MOLAR_RATIO.value,
+                Dimension.GEAR.value,
+                Dimension.COLLECTION_DATE.value
+            ],
         )
-        ax[ind].set_title(month_name[month])
+    # Remove known bad samples, and select only one tissue type for analysis
+    mask = (~df[Dimension.DATE_RUN.value].isin(bad_run_dates)) & (
+        df[Dimension.TISSUE.value] == tissue_type.value
+    )
+    df[Dimension.GEAR.value] = df[Dimension.GEAR.value].map(
+        {"C": "Cage", "N": "Net", "W": "Wild"}
+    )
+    color_map = {"Cage": "tab:cyan", "Net": "tab:blue", "Wild": "tab:pink"}
+    groups = (
+        df[mask]
+        .drop(columns=[Dimension.DATE_RUN.value, Dimension.TISSUE.value])
+        .dropna()
+        .groupby(Dimension.COLLECTION_DATE.value)
+    )
+
+    context = subplots(1, len(groups), figsize=figsize, sharex=True, sharey=False)
+    fig = context[0]
+    ax: list[Axes] = context[1]  # force type hinting
+    for ind, (month, data) in enumerate(groups):
+        colors = data[Dimension.GEAR.value].map(color_map)
+        ax[ind].scatter(
+            data[Dimension.MOLAR_RATIO.value],
+            data[Dimension.CARBON_FRACTIONATION.value],
+            c=colors,
+            marker="x",
+        )
+        ax[ind].set_title(month_name[int(month)])
         ax[ind].set_xlim(3, 6)
         ax[ind].set_ylim(-19, -16)
-        ax[ind].set_xlabel("C/N")
+        ax[ind].set_xlabel(Dimension.MOLAR_RATIO.value)
         if ind > 0:
             ax[ind].set_yticks([])
         else:
-            ax[ind].set_ylabel("d13C")
+            ax[ind].set_ylabel(Dimension.CARBON_FRACTIONATION.value)
 
-    fig.legend(
-        handles=[
-            Patch(color="tab:blue", label="Farm"),
-            Patch(color="tab:red", label="Wild"),
-            Patch(color="tab:cyan", label="Farm Filter"),
-            Patch(color="tab:pink", label="Wild Filter"),
-        ],
-        bbox_to_anchor=(1.05, 1),
-    )
+    handles = [Patch(color=color, label=label) for label, color in color_map.items()]
+    fig.legend(handles=handles, loc="upper right")
     fig.savefig(figures / "rawdata_scatter_monthly_gear.png")
 
 @plot.command("scatter-gear-monthly")
 @figure_size((10, 8))
-@option(
-    "--tissue-type",
-    default="M",
-    help="Tissue type to plot (M for muscle, G for gonad).",
-)
+@tissue_type_option(TissueType.MUSCLE)
 def plot_scatter_gear_monthly(
     figsize: tuple[float, float],
-    tisue_type: str
+    tissue_type: TissueType
 ):
     """
-    Carbon fractionation vs molar ration for a tissue type, segemented
-    by culture method and harvest month.
+    Carbon fractionation vs molar ratio for a tissue type, segemented
+    by culture method and collection date (month). Plotting uses
+    seaborn. For greater control, modify the code to use matplotlib directly.
     """
+    df = read_csv(
+            isotopes_no_outliers,
+            header=0,
+            usecols=[
+                Dimension.TISSUE.value,
+                Dimension.DATE_RUN.value,
+                Dimension.CARBON_FRACTIONATION.value,
+                Dimension.MOLAR_RATIO.value,
+                Dimension.GEAR.value,
+                Dimension.COLLECTION_DATE.value
+            ],
+        )
+    # Remove known bad samples, and select only one tissue type for analysis
+    mask = (~df[Dimension.DATE_RUN.value].isin(bad_run_dates)) & \
+        (df[Dimension.TISSUE.value] == tissue_type.value)
+
+    # Tissue type is already filtered, so only need to check gear and collection date
+    df = df[mask] \
+        .drop(columns=[Dimension.DATE_RUN.value, Dimension.TISSUE.value]) \
+        .dropna()
+
     fig, ax = subplots(figsize=figsize)
-    tissue = load_scatter_data(isotopes_no_outliers)
-    muscle = tissue.groupby(Dimension.TISSUE.value).get_group(tisue_type)
     scatterplot(
-        x=muscle[Dimension.MOLAR_RATIO.value],
-        y=muscle[Dimension.CARBON_FRACTIONATION.value],
-        hue=muscle[Dimension.GEAR.value],
+        x=df[Dimension.MOLAR_RATIO.value],
+        y=df[Dimension.CARBON_FRACTIONATION.value],
+        hue=df[Dimension.GEAR.value],
         palette="tab10",
-        style=muscle[Dimension.COLLECTION_DATE.value],
+        style=df[Dimension.COLLECTION_DATE.value],
         legend="auto",
         s=150,
         ax=ax,
     )
-    ax.set_xlabel("C/N")
-    ax.set_ylabel("d13C")
+    ax.set_xlabel(Dimension.MOLAR_RATIO.value)
+    ax.set_ylabel(Dimension.CARBON_FRACTIONATION.value)
     fig.savefig(figures / "rawdata_scatter_gear_monthly.png")
 
 @summarize.command("outliers")
@@ -1138,9 +1222,11 @@ def summarize_temperature_by_month(
         """Aggregate function for degree hours"""
         return (x > threshold).sum()
 
-    df = load_temperature_data().drop(columns=[EnvDimension.DATE.value])
-    groups = df.groupby("Month").aggregate(["mean", degree_hours]).T.round(2)
-    groups.columns = [month_name[int(each)] for each in groups.columns]
+    groups = load_temperature_data(env_data) \
+        .drop(columns=[EnvDimension.DATE.value]) \
+        .groupby("Month") \
+        .aggregate(["mean", degree_hours]).T.round(2)
+
     fig, ax = subplots(figsize=size)
     ax.axis("off")
     table = ax.table(
@@ -1152,10 +1238,3 @@ def summarize_temperature_by_month(
     table.set_fontsize(fontsize)
     fig.tight_layout()
     fig.savefig(figures / f"{filename}.{encoding}")
-
-
-if __name__ == "__main__":
-    cli.add_command(summarize)
-    cli.add_command(plot)
-    cli()
-    # outliers()
