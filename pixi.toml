@@ -11,6 +11,8 @@ version = "0.1.0"
 
 [tasks]
 isotopes = "python cli.py"
+docs = "sphinx-build -E docs www"
+docs-incremental = "sphinx-build docs www"
 
 [dependencies]
 pandas = ">=3.0.3,<4"
