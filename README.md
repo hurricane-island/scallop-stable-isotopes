@@ -8,7 +8,11 @@ This repository contains code and data related to a study on how growing conditi
 
 The analysis methods use Python and Pixi to output `figures` and tables from the `data`. The Python dependencies are defined in `pixi.toml`.
 
-The most basic use case is to generate all figures by running `pixi run python main.py` on the command line. 
+The most basic use case is to generate all figures by running `pixi run python main.py` on the command line.
+
+## Documentations
+
+The package publishes documentation of the command-line interface to GitHub Pages whenever it is updated.
 
 ## Disclosure of Generative AI use
 
