@@ -28,4 +28,6 @@ click = ">=8.4.2,<9"
 
 [pypi-dependencies]
 prince = ">=0.20.1, <0.21"
+sphinx = ">=9.1.0, <10"
+sphinx-click = ">=6.2.0, <7"
 
