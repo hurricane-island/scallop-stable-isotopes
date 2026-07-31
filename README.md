@@ -12,7 +12,8 @@ The most basic use case is to generate all figures by running `pixi run python m
 
 ## Documentations
 
-The package publishes documentation of the command-line interface to GitHub Pages whenever it is updated.
+The package [publishes documentation of the command-line interface to GitHub Pages](https://hurricane-island.github.io/scallop-stable-isotopes/) whenever it is updated.
+
 
 ## Disclosure of Generative AI use
 

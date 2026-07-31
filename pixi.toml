@@ -11,6 +11,7 @@ version = "0.1.0"
 
 [tasks]
 isotopes = "python cli.py"
+test = "pytest --verbose"
 docs = "sphinx-build -E docs www"
 docs-incremental = "sphinx-build docs www"
 
@@ -27,6 +28,7 @@ scipy = ">=1.18.0,<2"
 seaborn = ">=0.13.2,<0.14"
 black = ">=26.5.1,<27"
 click = ">=8.4.2,<9"
+pytest = ">=9.1.1,<10"
 
 [pypi-dependencies]
 prince = ">=0.20.1, <0.21"
