@@ -126,21 +126,3 @@ def tissue_type_option(default: TissueType):
         )(cmd)
 
     return decorator
-
-
-def file_output_options(cmd):
-    """
-    Decorator to add common file output options to a Click command.
-    """
-    cmd = option(
-        "--encoding",
-        default="png",
-        help="Encoding format for the output table (e.g., 'png', 'pdf').",
-    )(cmd)
-    cmd = figure_size((10, 7))(cmd)
-    cmd = option(
-        "--fontsize",
-        default=10,
-        help="Font size for the table text.",
-    )(cmd)
-    return cmd

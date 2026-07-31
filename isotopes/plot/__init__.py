@@ -3,17 +3,15 @@ Plotting commands. Isolating these from basic stats, and from
 commands that focus on output tables or summaries.
 """
 from enum import Enum
-from pathlib import Path
+from itertools import cycle, count
 from calendar import month_name
-from typing import Sequence, Union
-from pandas import read_csv, Series, DataFrame
+from typing import Union
+from pandas import read_csv, Series
 from matplotlib.pyplot import subplots
 from matplotlib.axes import Axes
 from matplotlib.patches import Patch
 from seaborn import scatterplot, pairplot
 from click import option, group, Choice, argument
-from itertools import cycle, count
-from pandas import read_csv, Series
 from numpy import column_stack, vstack
 from scipy.spatial import ConvexHull
 from isotopes.options import (
@@ -129,7 +127,7 @@ def plot_scatter_lipid_extraction(
     fig.savefig(f"{figures}/lipid_extraction_{culture_method.name.lower()}_{tissue_type.name.lower()}_{compare.name.lower()}.png")
 
 
-@plot.command(PlotCommand.PAIRS.value)
+@tissue.command(PlotCommand.PAIRS.value)
 def plot_pairs_seaborn():
     """
     Pairplot of nitrogen fractionation, carbon fractionation, and molar ratio, colored by gear type.
@@ -176,7 +174,7 @@ def plot_pairs_seaborn():
 
 @tissue.command(PlotCommand.SCATTER_MONTHLY_GEAR.value)
 @tissue_type_option(TissueType.MUSCLE)
-@figure_size((10, 3))
+@figure_size((7.5, 3))
 def plot_scatter_monthly_gear(
     tissue_type: TissueType, 
     figsize: tuple[float, float]
@@ -216,7 +214,7 @@ def plot_scatter_monthly_gear(
             c=colors,
             marker="x",
         )
-        ax[ind].set_title(month_name[int(str(month))])
+        ax[ind].set_title(month_name[int(month)])  # type: ignore
         ax[ind].set_xlim(3, 6)
         ax[ind].set_ylim(-19, -16)
         ax[ind].set_xlabel(Dimension.MOLAR_RATIO.value)
@@ -230,8 +228,8 @@ def plot_scatter_monthly_gear(
     fig.savefig(figures / "rawdata_scatter_monthly_gear.png")
 
 
-@plot.command(PlotCommand.SCATTER_GEAR_MONTHLY.value)
-@figure_size((10, 8))
+@tissue.command(PlotCommand.SCATTER_GEAR_MONTHLY.value)
+@figure_size((7.5, 5))
 @tissue_type_option(TissueType.MUSCLE)
 def plot_scatter_gear_monthly(figsize: tuple[float, float], tissue_type: TissueType):
     """
@@ -352,8 +350,7 @@ def isotopes_plot_box_var(
         key: name for key, (name, _) in lookup.items()
     })
     groups: dict[tuple[float, str], list[float]] = (
-        df.drop(columns=[Dimension.DATE_RUN.value, Dimension.TISSUE.value])
-        .groupby(
+        df.groupby(
             [
                 Dimension.COLLECTION_DATE.value,
                 Dimension.GEAR.value,
@@ -426,7 +423,6 @@ def isotopes_plot_box_gsi(figsize: tuple[float, float]):
         .to_dict()[GSIDimension.GSI.value]
     )
     gear = ["N", "C", "W"]
-  
 
     for ii, (gg, color) in enumerate(zip(gear, custom_colors)):
         data = []
@@ -453,7 +449,7 @@ def isotopes_plot_box_gsi(figsize: tuple[float, float]):
     fig.savefig(figures / "isotopes_plot_box_gsi.png")
 
 
-@plot.command("tissue-histograms")
+@tissue.command("histograms")
 @tissue_type_option(TissueType.MUSCLE)
 @figure_size((8, 6))
 def plot_tissue_histograms(figsize: tuple[float, float], tissue_type: TissueType):
@@ -461,22 +457,18 @@ def plot_tissue_histograms(figsize: tuple[float, float], tissue_type: TissueType
     Visually determine whether data appears normally distributed for a given tissue type.
     This is intended as a simple diagnostic, and should be followed up with a more rigorous statistical test for normality.
     """
+    dims = [
+        Dimension.NITROGEN_FRACTIONATION,
+        Dimension.CARBON_FRACTIONATION,
+        Dimension.MOLAR_RATIO,]
     df = partition_data_by_tissue(
         isotopes_no_outliers,
-        [
-            Dimension.NITROGEN_FRACTIONATION,
-            Dimension.CARBON_FRACTIONATION,
-            Dimension.MOLAR_RATIO,
-        ],
+        dims,
         tissue_type,
     ).dropna()
     fig, ax = subplots(figsize=figsize)
     for dim, color in zip(
-        (
-            Dimension.NITROGEN_FRACTIONATION.value,
-            Dimension.CARBON_FRACTIONATION.value,
-            Dimension.MOLAR_RATIO.value,
-        ),
+        (each.value for each in dims),
         ("black", "blue", "red"),
     ):
         series: Series = df[dim]
@@ -494,11 +486,6 @@ def plot_tissue_histograms(figsize: tuple[float, float], tissue_type: TissueType
 @figure_size((10, 8))
 @tissue_type_option(TissueType.MUSCLE)
 @option(
-    "--data-file",
-    default="stable-isotopes-no-outliers.csv",
-    help="CSV file containing the stable isotope data.",
-)
-@option(
     "--convex-hulls",
     is_flag=True,
     help="Whether to draw convex hulls around the data points for each month.",
@@ -507,7 +494,6 @@ def plot_tissue_histograms(figsize: tuple[float, float], tissue_type: TissueType
 def plot_famd_analysis_2d(
     tissue_type: TissueType,
     figsize: tuple[float, float],
-    data_file: str,
     convex_hulls: bool,
 ):
     """
@@ -519,17 +505,18 @@ def plot_famd_analysis_2d(
             Dimension.NITROGEN_FRACTIONATION,
             Dimension.CARBON_FRACTIONATION,
             Dimension.MOLAR_RATIO,
+            Dimension.COLLECTION_DATE,
+            Dimension.GEAR,
         ],
         tissue_type,
     ).dropna()
     df[Dimension.COLLECTION_DATE.value] = df[Dimension.COLLECTION_DATE.value].map(dict((i, month_name[i]) for i in range(1, 13)))
-    partition = df[df[Dimension.TISSUE.value] == "M"]
-    factors = calculate_famd(partition, 2)
-    inner_join = partition.join(factors, how="inner")
+    factors = calculate_famd(df, 2)
+    inner_join = df.join(factors, how="inner")
     gear_groups = inner_join.groupby(Dimension.GEAR.value)
-    custom_colors = (("red", "o"), ("blue", "D"), ("black", "s"))
+    colors = (("red", "o"), ("blue", "D"), ("black", "s"))
     fig, ax = subplots(figsize=figsize)
-    for (gear_type, group_df), (color, marker) in zip(gear_groups, custom_colors):
+    for (gear_type, group_df), (color, marker) in zip(gear_groups, colors):
         print("group", group_df.columns)
         ax.scatter(
             group_df[0],
@@ -550,20 +537,19 @@ def plot_famd_analysis_2d(
         ):
             cycle_num = hull_count // style_count
             points = column_stack((group_df[0], group_df[1]))
-            if len(points) < 3:
-                continue
-            hull = ConvexHull(points)
-            hull_points = points[hull.vertices]
-            hull_points = vstack([hull_points, hull_points[0]])  # close polygon
-            ax.plot(
-                hull_points[:, 0],
-                hull_points[:, 1],
-                lw=cycle_num + 1,  # increase line width for each cycle
-                linestyle=linestyle,
-                color="black",
-                zorder=1,
-                label=month,
-            )
+            if len(points) >= 3:
+                hull = ConvexHull(points)
+                hull_points = points[hull.vertices]
+                hull_points = vstack([hull_points, hull_points[0]])  # close polygon
+                ax.plot(
+                    hull_points[:, 0],
+                    hull_points[:, 1],
+                    lw=cycle_num + 1,  # increase line width for each cycle
+                    linestyle=linestyle,
+                    color="black",
+                    zorder=1,
+                    label=month,
+                )
     ax.set_xlim(-4, 4)
     ax.set_ylim(-4, 4)
     ax.set_xlabel("Factor 1")
