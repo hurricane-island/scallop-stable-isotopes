@@ -31,5 +31,9 @@
         "ylabel",
         "ylim",
         "zscore"
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "pylint.args": [
+        "--extension-pkg-allow-list=scipy"
     ]
 }
