@@ -27,7 +27,7 @@ from isotopes.options import (
     raw_data,
     GSIDimension
 )
-from isotopes.statistics import calculate_famd, partition_data_by_tissue
+from isotopes.statistics import calculate_famd, partition_data_by_tissue, calculate_pca
 
 class PlotCommand(Enum):
     """
@@ -557,3 +557,93 @@ def plot_famd_analysis_2d(
     ax.legend(loc="best")
     fig.tight_layout()
     fig.savefig(f"{figures}/factor_analysis_of_mixed_data.png")
+
+
+
+
+@plot.command("pca-loadings")
+def clustering_and_pca_analysis():
+    """
+    Perform clustering and PCA analysis on the muscle tissue data.
+    """
+    df = partition_data_by_tissue(
+        isotopes_no_outliers,
+        [
+            Dimension.GEAR,
+            Dimension.NITROGEN_PERCENTAGE,
+            Dimension.NITROGEN_FRACTIONATION,
+            Dimension.CARBON_PERCENTAGE,
+            Dimension.CARBON_FRACTIONATION,
+            Dimension.MOLAR_RATIO,
+        ],
+        TissueType.MUSCLE
+    ).dropna()
+    pca_df = df[
+        [
+            Dimension.NITROGEN_FRACTIONATION.value,
+            Dimension.CARBON_FRACTIONATION.value,
+            Dimension.MOLAR_RATIO.value,
+        ]
+    ]
+    _, _, loadings, _ = calculate_pca(pca_df)
+
+    fig, ax = subplots(figsize=(10, 8))
+    scatterplot(
+        x=loadings[:, 0],
+        y=loadings[:, 1],
+        hue=loadings[:, 1],
+        palette="tab10",
+        legend=False,
+        s=150,
+    )
+    ax.set_xlim(-0.6, 0.6)
+    ax.set_ylim(-0.6, 0.6)
+    ax.set_xlabel("Principal Component 1")
+    ax.set_ylabel("Principal Component 2")
+    labels = ["d15N", "d13C", "C/N"]
+    for i, txt in enumerate(labels):
+        ax.text(loadings[:, 0][i], loadings[:, 1][i] + 0.02, txt, fontsize=12)
+    ax.grid(True, "major")
+    fig.savefig(f"{figures}/pca_loadings.png")
+
+@plot.command("pca-scores")
+def isotopes_plot_pca_scores():
+    """
+    Look at score plots to visualize how samples relate to each
+    other in the space defined by the principal components
+    """
+    df = partition_data_by_tissue(
+        isotopes_no_outliers,
+        [
+            Dimension.GEAR,
+            Dimension.NITROGEN_PERCENTAGE,
+            Dimension.NITROGEN_FRACTIONATION,
+            Dimension.CARBON_PERCENTAGE,
+            Dimension.CARBON_FRACTIONATION,
+            Dimension.MOLAR_RATIO,
+        ],
+        TissueType.MUSCLE
+    ).dropna()
+    pca_df = df[
+        [
+            Dimension.NITROGEN_FRACTIONATION.value,
+            Dimension.CARBON_FRACTIONATION.value,
+            Dimension.MOLAR_RATIO.value,
+        ]
+    ]
+    _, components, _, _ = calculate_pca(pca_df)
+    custom_colors = ("black", "red")
+    fig, ax = subplots(figsize=(10, 8))
+    scatterplot(
+        x=components[:, 0],
+        y=components[:, 1],
+        hue=df[Dimension.GEAR],
+        palette=custom_colors,
+        legend="full",
+        s=100,
+    )
+    ax.set_xlim(-4, 4)
+    ax.set_ylim(-4, 4)
+    ax.set_xlabel("Principal Component 1")
+    ax.set_ylabel("Principal Component 2")
+    fig.savefig(f"{figures}/pca_score_plot_gear.png")

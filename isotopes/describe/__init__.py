@@ -21,7 +21,7 @@ from isotopes.options import (
     isotopes_no_outliers,
     env_data,
 )
-from isotopes.statistics import partition_data_by_tissue
+from isotopes.statistics import partition_data_by_tissue, calculate_pca
 
 class DescribeGroupCommand(Enum):
     """
@@ -273,3 +273,29 @@ def describe_environment_temperature(
             groups[col] = groups[col].astype(int)
 
     print(groups)
+
+
+@tissue.command("pca")
+def isotopes_describe_pca_clustering():
+    """
+    Perform PCA clustering analysis on the muscle tissue data.
+    """
+    df = partition_data_by_tissue(
+        isotopes_no_outliers,
+        [
+            Dimension.GEAR,
+            Dimension.NITROGEN_FRACTIONATION,
+            Dimension.CARBON_FRACTIONATION,
+            Dimension.MOLAR_RATIO,
+        ],
+        TissueType.MUSCLE
+    ).dropna()
+    pca_df = df[
+        [
+            Dimension.NITROGEN_FRACTIONATION.value,
+            Dimension.CARBON_FRACTIONATION.value,
+            Dimension.MOLAR_RATIO.value,
+        ]
+    ]
+    pca, components, loadings, summary = calculate_pca(pca_df)
+    print(summary)

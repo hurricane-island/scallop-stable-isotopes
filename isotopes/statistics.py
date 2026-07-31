@@ -4,10 +4,34 @@ Statistical analysis functions for isotopic data, including ANOVA and FAMD.
 This is kept as a separate module to avoid circular imports, since some methods are
 used in both the describe and plot modules.
 """
-from pandas import DataFrame, read_csv
 from pathlib import Path
+from pandas import DataFrame, read_csv
 from prince import FAMD
-from isotopes.options import Dimension, TissueType, bad_run_dates
+from numpy import sqrt
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from isotopes.options import (
+    Dimension,
+    TissueType,
+    bad_run_dates,
+)
+
+def calculate_pca(data: DataFrame) -> tuple[PCA, DataFrame, DataFrame, list[list[float]]]:
+    """
+    Perform PCA on the muscle tissue data and return the PCA components and explained variance.
+    """
+    std_scaler = StandardScaler()
+    scaled_df = std_scaler.fit_transform(data)
+    pca = PCA(n_components=2)
+    components = pca.fit_transform(scaled_df)
+    explained_variance = pca.explained_variance_ratio_
+    summary = [
+        pca.explained_variance_.round(2),
+        pca.explained_variance_ratio_.round(2),
+        pca.explained_variance_ratio_.cumsum().round(2),
+    ]
+    loadings = pca.components_.T * sqrt(explained_variance)
+    return pca, components, loadings, summary
 
 
 def calculate_famd(partition: DataFrame, components: int):
