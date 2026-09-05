@@ -40,12 +40,8 @@ environment_file = BASE_DIR / "data" / "temperature-and-light.csv"
 figures = BASE_DIR / "figures"
 figures.mkdir(parents=True, exist_ok=True)
 
-# LOAD STABLE ISOTOPE DATA
 df = pd.read_csv(data_file)
-print("\nStable isotope columns:")
-print(df.columns.tolist())
 
-# Keep only variables needed for analysis
 
 df = df[
     [
@@ -167,22 +163,14 @@ analysis_data["Collection_Date_Group"] = analysis_data["Collection_Date_Group"].
 )
 print("\nEnvironmental data availability:")
 print(analysis_data[["Temperature", "Light"]].isna().sum())
-
-
 print("\nGear counts after environmental merge:")
 print(analysis_data["Gear"].value_counts())
-
-
 print("\nCollection dates used as random-effect groups:")
 
 print(analysis_data["Collection_Date_Group"].value_counts().sort_index())
 
-# RESPONSES
 
 responses = ["d13C", "d15N", "C/N (Molar)"]
-
-# 12. MIXED MODEL FITTING FUNCTION
-
 
 def fit_lmm(data, formula, response):
     """
@@ -205,13 +193,9 @@ def fit_lmm(data, formula, response):
     optimizers = ["lbfgs", "powell", "bfgs", "cg"]
     last_error = None
     for optimizer in optimizers:
-
         try:
-
             with warnings.catch_warnings():
-
                 warnings.simplefilter("ignore", ConvergenceWarning)
-
                 result = model.fit(
                     reml=False, method=optimizer, maxiter=2000, disp=False
                 )
@@ -235,7 +219,6 @@ def fit_lmm(data, formula, response):
 
 # MIXED MODEL R²
 
-
 def mixed_model_r2(result):
     """
     Calculate approximate marginal and conditional R²
@@ -247,18 +230,13 @@ def mixed_model_r2(result):
     Conditional R²:
         variation explained by fixed + random effects
     """
-    # Fixed-effect predictions
-
     fixed_prediction = result.model.exog @ result.fe_params
     var_fixed = np.var(fixed_prediction, ddof=1)
 
     # Random-effect variance
-
     try:
-
         var_random = float(result.cov_re.iloc[0, 0])
     except Exception:
-
         var_random = 0.0
 
     # Residual variance
@@ -414,20 +392,16 @@ def variation_partitioning_lmm(data, response, include_light=True):
         f"{unique_environment + unique_gear + shared + unexplained:.4f}"
     )
 
-    # RANDOM EFFECT VARIANCE
 
     try:
-
         random_variance = float(full_model.cov_re.iloc[0, 0])
     except Exception:
-
         random_variance = np.nan
+
     residual_variance = full_model.scale
     print("\nFull model variance components:")
     print(f"Collection-date variance: " f"{random_variance:.6f}")
     print(f"Residual variance: " f"{residual_variance:.6f}")
-
-    # RETURN RESULTS
 
     results = {
         "Response": response,
@@ -451,9 +425,6 @@ def variation_partitioning_lmm(data, response, include_light=True):
         "full": full_model,
     }
     return (results, models)
-
-
-# PLOTTING FUNCTION
 
 
 def make_partition_plot(results_df, output_file, title):
@@ -541,8 +512,6 @@ for response in responses:
 
 light_results_df = pd.DataFrame(light_results)
 
-# SAVE RESULTS
-
 light_results_df.to_csv(
     figures / "variation_partitioning_temperature_light_random_date_summary.csv",
     index=False,
@@ -561,7 +530,6 @@ light_plot_data.to_csv(
     figures / "variation_partitioning_temperature_light_random_date.csv", index=False
 )
 
-# PLOT
 
 make_partition_plot(
     light_results_df,
@@ -608,9 +576,7 @@ for response in responses:
     temperature_results.append(result)
     temperature_models[response] = models
 
-
 temperature_results_df = pd.DataFrame(temperature_results)
-# SAVE RESULTS
 
 temperature_results_df.to_csv(
     figures / "variation_partitioning_temperature_random_date_summary.csv", index=False
@@ -696,18 +662,3 @@ collection_date_summary = (
 )
 collection_date_summary.to_csv(figures / "collection_date_mapping.csv", index=False)
 
-# FILES CREATED
-
-print("\n")
-print("Figures and result tables saved to:")
-print(figures)
-print("\nFiles created:")
-
-print("  - variation_partitioning_temperature_light_random_date.png")
-print("  - variation_partitioning_temperature_light_random_date_summary.csv")
-print("  - variation_partitioning_temperature_light_random_date.csv")
-print("  - variation_partitioning_temperature_random_date.png")
-print("  - variation_partitioning_temperature_random_date_summary.csv")
-print("  - variation_partitioning_temperature_random_date.csv")
-print("  - collection_date_mapping.csv")
-print("\nDone.")
