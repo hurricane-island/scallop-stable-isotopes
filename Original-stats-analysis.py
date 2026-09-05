@@ -98,7 +98,6 @@ nets = gear_types.get_group('N')
 wild = gear_types.get_group('W')
 
 
-
 # model = ols('N ~ C(Gear) + C(Month) + C(Gear):C(Month)', data=anova_data).fit()
 # model_oneway = ols('N ~ C(farmvwild)', data=anova_data).fit()
 # # Generate the ANOVA table
@@ -107,17 +106,6 @@ wild = gear_types.get_group('W')
 
 # print(one_way_anova)
 
-# Levene's test for homogeneity of variances for % N
-# a = stats.levene(june['% N'], july['% N'], august['% N'], sept['% N'], october['% N'])
-# b = stats.levene(cages['% N'], nets['% N'], wild['% N'])
-
-# Levene's test for homogeneity of variances for d13C
-# a = stats.levene(june['d13C'], july['d13C'], august['d13C'], sept['d13C'], october['d13C'])
-# b = stats.levene(cages['d13C'], nets['d13C'], wild['d13C'])
-
-# Levene's test for homogeneity of variances for d15N
-# a = stats.levene(june['d15N'], july['d15N'], august['d15N'], sept['d15N'], october['d15N'])
-# b = stats.levene(cages['d15N'], nets['d15N'], wild['d15N']) 
 
 # Levene's test for homogeneity of variances for C/N (Molar)
 a = stats.levene(june['C/N (Molar)'], july['C/N (Molar)'], august['C/N (Molar)'], sept['C/N (Molar)'], october['C/N (Molar)'])
@@ -256,11 +244,3 @@ for dates in df['Farmed or Wild']:
     plt.title('PCA Score Plot: PC1 vs PC2')
     plt.xlim(-4,4)
     plt.ylim(-4,4)
-
-# for dates in df['Collection Date']:
-#     plt.scatter(components[:,0], components[:,1], c = df['Collection Date'].astype('category').cat.codes, cmap='viridis')
-#     plt.title('PCA Score Plot: PC1 vs PC2')
-#     plt.xlim(-4,4)
-#     plt.ylim(-4,4)
-
-# plt.show()
