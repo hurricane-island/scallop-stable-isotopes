@@ -26,12 +26,6 @@ from statsmodels.tools.sm_exceptions import ConvergenceWarning
 # RANDOM EFFECT:
 #   Collection date
 #
-# Collection date codes:
-#   6  = 06/15/2023
-#   7  = 07/13/2023
-#   8  = 08/14/2023
-#   9  = 09/15/2023
-#   10 = 10/12/2023
 
 
 BASE_DIR = Path(__file__).parent
@@ -62,11 +56,11 @@ df = df[
         "C/N (Molar)",
         "Date Run",
     ]
-].copy()
+]
 
-df = df[df["Date Run"] != "9/6/23"].copy()
-df = df.dropna(subset=["Gear Type"]).copy()
-data_muscle = df.dropna(subset=["Tissue Type"]).copy()
+df = df[df["Date Run"] != "9/6/23"]
+df = df.dropna(subset=["Gear Type"])
+data_muscle = df.dropna(subset=["Tissue Type"])
 data_muscle = data_muscle[data_muscle["Tissue Type"] == "M"].copy()
 data_muscle = data_muscle.rename(columns={"Gear Type": "Gear"})
 print("\nInitial gear counts:")
@@ -152,8 +146,6 @@ analysis_data[["Temperature", "Light"]] = analysis_data.apply(
     assign_environment, axis=1
 )
 
-# CLEAN VARIABLES
-
 analysis_data["Gear"] = analysis_data["Gear"].astype("category")
 
 # Make sure date group is categorical
@@ -178,7 +170,6 @@ def fit_lmm(data, formula, response):
     as the random intercept.
 
     Random effect:
-
         Collection_Date_Group
 
     Fixed effects are defined by the formula.
@@ -217,8 +208,6 @@ def fit_lmm(data, formula, response):
     )
 
 
-# MIXED MODEL R²
-
 def mixed_model_r2(result):
     """
     Calculate approximate marginal and conditional R²
@@ -249,9 +238,6 @@ def mixed_model_r2(result):
     marginal_r2 = var_fixed / denominator
     conditional_r2 = (var_fixed + var_random) / denominator
     return (marginal_r2, conditional_r2)
-
-
-# LMM VARIATION PARTITIONING
 
 
 def variation_partitioning_lmm(data, response, include_light=True):
@@ -294,10 +280,8 @@ def variation_partitioning_lmm(data, response, include_light=True):
 
     """
 
-    # COMPLETE CASES
     required = [response, "Temperature", "Gear", "Collection_Date_Group"]
     if include_light:
-
         required.append("Light")
     subset = data.dropna(subset=required).copy()
     # Remove unused category levels
@@ -306,8 +290,6 @@ def variation_partitioning_lmm(data, response, include_light=True):
     subset["Collection_Date_Group"] = subset[
         "Collection_Date_Group"
     ].cat.remove_unused_categories()
-
-    # CHECK RANDOM EFFECT
 
     n_dates = subset["Collection_Date_Group"].nunique()
     if n_dates < 2:
@@ -319,20 +301,14 @@ def variation_partitioning_lmm(data, response, include_light=True):
             "required for a random effect."
         )
 
-    # FORMULAS
-
     if include_light:
         environment_formula = f'Q("{response}") ' f"~ Temperature + Light"
-
         full_formula = f'Q("{response}") ' f"~ Temperature + Light + C(Gear)"
-
     else:
         environment_formula = f'Q("{response}") ' f"~ Temperature"
         full_formula = f'Q("{response}") ' f"~ Temperature + C(Gear)"
     gear_formula = f'Q("{response}") ' f"~ C(Gear)"
     null_formula = f'Q("{response}") ~ 1'
-
-    # PRINT HEADER
 
     print("\n" + "=" * 70)
 
@@ -346,15 +322,9 @@ def variation_partitioning_lmm(data, response, include_light=True):
     print("\nCollection-date groups:")
     print(subset["Collection_Date_Group"].value_counts().sort_index())
 
-    # FIT MODELS
-
-    print("\nFitting null model...")
     null_model = fit_lmm(subset, null_formula, response)
-    print("Fitting environment model...")
     environment_model = fit_lmm(subset, environment_formula, response)
-    print("Fitting gear model...")
     gear_model = fit_lmm(subset, gear_formula, response)
-    print("Fitting full model...")
     full_model = fit_lmm(subset, full_formula, response)
 
     # R²
@@ -428,12 +398,7 @@ def variation_partitioning_lmm(data, response, include_light=True):
 
 
 def make_partition_plot(results_df, output_file, title):
-    plot_order = [
-        "Unique environment",
-        "Shared environment + gear",
-        "Unique gear",
-        "Unexplained",
-    ]
+
     plot_colors = {
         "Unique environment": "#2C7FB8",
         "Shared environment + gear": "#7FCDBB",
@@ -443,14 +408,14 @@ def make_partition_plot(results_df, output_file, title):
     fig, ax = plt.subplots(figsize=(9, 6))
     x_positions = np.arange(len(results_df))
     bottom = np.zeros(len(results_df))
-    for component in plot_order:
+    for component, color in plot_colors.items():
         values = results_df[component].values * 100
         ax.bar(
             x_positions,
             values,
             bottom=bottom,
             label=component,
-            color=plot_colors[component],
+            color=color,
             edgecolor="black",
             linewidth=0.5,
         )
@@ -653,7 +618,6 @@ print(
     ].round(4)
 )
 
-# SAVE COLLECTION-DATE INFORMATION
 
 collection_date_summary = (
     analysis_data[["Collection_Date_Code", "Collection_Date_Group", "Month"]]
