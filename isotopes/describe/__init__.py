@@ -36,8 +36,9 @@ class DescribeGroupCommand(Enum):
 @group()
 def describe():
     """
-    Perform statistical analysis and summarize raw data. The functionality is divided into
-    commands for `tissue` and `environmental` data.
+    Perform statistical analysis and summarize raw data. 
+    The functionality is divided into commands for 
+    `tissue` and `environmental` data.
     """
 
 @group()
@@ -123,7 +124,10 @@ def describe_tissue_levenes_test(
     tissue_type: TissueType, group_by: Dimension, variable: Dimension
 ):
     """
-    Summarize Levene's test for homogeneity of variances. This is used to determine whether the assumptions of ANOVA are met for a given tissue type. If the p-value is greater than 0.05, we can assume homogeneity of variances and proceed with ANOVA.
+    Summarize Levene's test for homogeneity of variances. 
+    This is used to determine whether the assumptions of ANOVA 
+    are met for a given tissue type. If the p-value is greater 
+    than 0.05, we can assume homogeneity of variances and proceed with ANOVA.
     """
     groups = (
         partition_data_by_tissue(
