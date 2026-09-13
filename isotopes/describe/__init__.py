@@ -3,7 +3,7 @@ Command line interface for statistical analysis and data summarization of isotop
 
 This module should use the local statistics module, and mostly have commands here.
 """
-from enum import Enum
+from enum import StrEnum, auto
 from calendar import month_name
 from pandas import read_csv, Series, to_datetime
 from numpy import absolute, asarray
@@ -23,15 +23,15 @@ from isotopes.options import (
 )
 from isotopes.statistics import partition_data_by_tissue, calculate_pca
 
-class DescribeGroupCommand(Enum):
+class DescribeGroupCommand(StrEnum):
     """
     Group of commands for statistical analysis and data summarization of isotopic data.
     """
 
-    ANOVA = "anova"
-    LEVENES = "levenes"
-    OUTLIERS = "outliers"
-    TEMPERATURE = "temperature"
+    ANOVA = auto()
+    LEVENES = auto()
+    OUTLIERS = auto()
+    TEMPERATURE = auto()
 
 @group()
 def describe():
@@ -57,7 +57,7 @@ describe.add_command(tissue)
 describe.add_command(environment)
 
 
-@tissue.command(DescribeGroupCommand.ANOVA.value)
+@tissue.command(DescribeGroupCommand.ANOVA)
 @tissue_type_option(TissueType.MUSCLE)
 def describe_tissue_analysis_of_variance(tissue_type: TissueType):
     """
@@ -82,10 +82,10 @@ def describe_tissue_analysis_of_variance(tissue_type: TissueType):
     )
     # Patsy syntax: C() = categorical, Q() = wrap special characters
     formula = (
-        f"Q('{analysis.value}') ~ "
-        f"C(Q('{Dimension.GEAR.value}')) + "
-        f"C(Q('{Dimension.COLLECTION_DATE.value}')) + "
-        f"C(Q('{Dimension.GEAR.value}')):C(Q('{Dimension.COLLECTION_DATE.value}'))"
+        f"Q('{analysis}') ~ "
+        f"C(Q('{Dimension.GEAR}')) + "
+        f"C(Q('{Dimension.COLLECTION_DATE}')) + "
+        f"C(Q('{Dimension.GEAR}')):C(Q('{Dimension.COLLECTION_DATE}'))"
     )
     model = ols(formula, data=df.dropna()).fit()
     result = anova_lm(model, type=2)  # Type II sum of squares
@@ -93,13 +93,13 @@ def describe_tissue_analysis_of_variance(tissue_type: TissueType):
         (
             f"Analysis of Variance\n"
             f"Tissue: {tissue_type.name.lower()}\n"
-            f"Variable: {analysis.value}\n"
+            f"Variable: {analysis}\n"
         )
     )
     print(result)
 
 
-@tissue.command(DescribeGroupCommand.LEVENES.value)
+@tissue.command(DescribeGroupCommand.LEVENES)
 @tissue_type_option(TissueType.MUSCLE)
 @option(
     "--group-by",
@@ -139,9 +139,9 @@ def describe_tissue_levenes_test(
             tissue_type,
         )
         .dropna()
-        .groupby(group_by.value)
+        .groupby(group_by)
         .agg(list)
-        .get(variable.value)
+        .get(variable)
         .to_dict() # type: ignore
         .values()
     )
@@ -150,7 +150,7 @@ def describe_tissue_levenes_test(
         (
             f"\nLevene's Test of Homogeneity of Variance"
             f"\nTissue: {tissue_type.name.lower()}"
-            f"\nDimension: {variable.name.lower()} ({variable.value})"
+            f"\nDimension: {variable.name.lower()} ({variable})"
             f"\nGroup by: {group_by.name}"
             f"\nResult: {result.statistic}"
             f"\nP-value: {result.pvalue}"
@@ -158,7 +158,7 @@ def describe_tissue_levenes_test(
         )
     )
 
-@tissue.command(DescribeGroupCommand.OUTLIERS.value)
+@tissue.command(DescribeGroupCommand.OUTLIERS)
 @tissue_type_option(TissueType.MUSCLE)
 @option(
     "--variable",
@@ -187,12 +187,12 @@ def describe_tissue_outliers(
         ],
         tissue_type,
     ).dropna()
-    z = asarray(zscore(df[variable.value]))  # type coercion to suppress error
+    z = asarray(zscore(df[variable]))  # type coercion to suppress error
     result = df.loc[absolute(z) > 3]
     print(result)
 
 
-@tissue.command(Command.GEAR_TYPE.value)
+@tissue.command(Command.GEAR_TYPE)
 def describe_tissue_by_gear_type(
 ):
     """
@@ -200,15 +200,15 @@ def describe_tissue_by_gear_type(
     and C/N (molar) by gear type and month.
     """
     group_by = [
-        Dimension.COLLECTION_DATE.value,
-        Dimension.GEAR.value,
-        Dimension.TISSUE.value,
+        Dimension.COLLECTION_DATE,
+        Dimension.GEAR,
+        Dimension.TISSUE,
     ]
     analyze = [
-        Dimension.CARBON_FRACTIONATION.value,
-        Dimension.NITROGEN_FRACTIONATION.value,
-        Dimension.MOLAR_RATIO.value,
-        Dimension.NITROGEN_PERCENTAGE.value,
+        Dimension.CARBON_FRACTIONATION,
+        Dimension.NITROGEN_FRACTIONATION,
+        Dimension.MOLAR_RATIO,
+        Dimension.NITROGEN_PERCENTAGE,
     ]
     agg_map = {key: ["mean", "std"] for key in analyze}
     df = read_csv(
@@ -217,15 +217,15 @@ def describe_tissue_by_gear_type(
         usecols=[
             *group_by,
             *analyze,
-            Dimension.DATE_RUN.value,
+            Dimension.DATE_RUN,
         ],
     ).dropna()
-    mask = ~df[Dimension.DATE_RUN.value].isin(bad_run_dates) & (
-        df[Dimension.TISSUE.value].isin(["M", "G"])
+    mask = ~df[Dimension.DATE_RUN].isin(bad_run_dates) & (
+        df[Dimension.TISSUE].isin(["M", "G"])
     )
     groups = (
         df[mask]
-        .drop(columns=[Dimension.DATE_RUN.value])
+        .drop(columns=[Dimension.DATE_RUN])
         .groupby(group_by)
         .agg(agg_map)
         .round(2)
@@ -233,7 +233,7 @@ def describe_tissue_by_gear_type(
     print(groups)
 
 
-@environment.command(DescribeGroupCommand.TEMPERATURE.value)
+@environment.command(DescribeGroupCommand.TEMPERATURE)
 @option(
     "--threshold",
     default=55.4,
@@ -255,18 +255,18 @@ def describe_environment_temperature(
         env_data,
         header=0,
         usecols=[
-            EnvDimension.DATE.value,
-            EnvDimension.CAGE_TEMP.value,
-            EnvDimension.NET_BOTTOM_TEMP.value,
-            EnvDimension.WILD_TEMP.value,
+            EnvDimension.DATE,
+            EnvDimension.CAGE_TEMP,
+            EnvDimension.NET_BOTTOM_TEMP,
+            EnvDimension.WILD_TEMP,
         ],
     )
-    times = to_datetime(df[EnvDimension.DATE.value], format="%m/%d/%y %H:%M")
-    df[EnvDimension.DATE.value] = times
+    times = to_datetime(df[EnvDimension.DATE], format="%m/%d/%y %H:%M")
+    df[EnvDimension.DATE] = times
     df["Month"] = times.dt.month
     groups = (
         df
-        .drop(columns=[EnvDimension.DATE.value])
+        .drop(columns=[EnvDimension.DATE])
         .groupby("Month")
         .aggregate(["mean", test])
         .round(2)
@@ -296,9 +296,9 @@ def isotopes_describe_pca_clustering():
     ).dropna()
     pca_df = df[
         [
-            Dimension.NITROGEN_FRACTIONATION.value,
-            Dimension.CARBON_FRACTIONATION.value,
-            Dimension.MOLAR_RATIO.value,
+            Dimension.NITROGEN_FRACTIONATION,
+            Dimension.CARBON_FRACTIONATION,
+            Dimension.MOLAR_RATIO,
         ]
     ]
     pca, components, loadings, summary = calculate_pca(pca_df)
