@@ -2,7 +2,7 @@
 Plotting commands. Isolating these from basic stats, and from
 commands that focus on output tables or summaries.
 """
-from enum import Enum
+from enum import StrEnum
 from itertools import cycle, count
 from calendar import month_name
 from typing import Union
@@ -29,7 +29,7 @@ from isotopes.options import (
 )
 from isotopes.statistics import calculate_famd, partition_data_by_tissue, calculate_pca
 
-class PlotCommand(Enum):
+class PlotCommand(StrEnum):
     """
     Valid plot commands for the isotopes package.
     """
@@ -69,7 +69,7 @@ tissue.add_command(box)
 tissue.add_command(scatter)
 
 
-@scatter.command(PlotCommand.LIPID_EXTRACTION.value)
+@scatter.command(PlotCommand.LIPID_EXTRACTION)
 @tissue_type_option(TissueType.MUSCLE)
 @option(
     "--culture-method",
@@ -95,23 +95,23 @@ def plot_scatter_lipid_extraction(
     of wild scallops.
     """
     filter_dims = [
-        Dimension.TISSUE.value,
-        Dimension.GEAR.value,
-        Dimension.DATE_RUN.value,
+        Dimension.TISSUE,
+        Dimension.GEAR,
+        Dimension.DATE_RUN,
     ]
     df = read_csv(
         isotopes_no_outliers,
         header=0,
         usecols=[
             *filter_dims,
-            compare.value,
-            Dimension.MOLAR_RATIO.value,
+            compare,
+            Dimension.MOLAR_RATIO,
         ],
     )
     mask = (
-        (~df[Dimension.DATE_RUN.value].isin(bad_run_dates))
-        & (df[Dimension.TISSUE.value] == tissue_type.value)
-        & (df[Dimension.GEAR.value] == culture_method.value)
+        (~df[Dimension.DATE_RUN].isin(bad_run_dates))
+        & (df[Dimension.TISSUE] == tissue_type)
+        & (df[Dimension.GEAR] == culture_method)
     )
     df = (
         df[mask]
@@ -120,14 +120,14 @@ def plot_scatter_lipid_extraction(
     )
     fig, ax = subplots(figsize=figsize)
     ax.scatter(
-        x=df[Dimension.MOLAR_RATIO.value],
-        y=df[compare.value],
+        x=df[Dimension.MOLAR_RATIO],
+        y=df[compare],
         s=30,
     )
     fig.savefig(f"{figures}/lipid_extraction_{culture_method.name.lower()}_{tissue_type.name.lower()}_{compare.name.lower()}.png")
 
 
-@tissue.command(PlotCommand.PAIRS.value)
+@tissue.command(PlotCommand.PAIRS)
 def plot_pairs_seaborn():
     """
     Pairplot of nitrogen fractionation, carbon fractionation, and molar ratio, colored by gear type.
@@ -136,43 +136,43 @@ def plot_pairs_seaborn():
         isotopes_no_outliers,
         header=0,
         usecols=[
-            Dimension.TISSUE.value,
-            Dimension.DATE_RUN.value,
-            Dimension.NITROGEN_FRACTIONATION.value,
-            Dimension.CARBON_FRACTIONATION.value,
-            Dimension.MOLAR_RATIO.value,
-            Dimension.GEAR.value,
+            Dimension.TISSUE,
+            Dimension.DATE_RUN,
+            Dimension.NITROGEN_FRACTIONATION,
+            Dimension.CARBON_FRACTIONATION,
+            Dimension.MOLAR_RATIO,
+            Dimension.GEAR,
         ],
     )
     # Remove known bad samples, and select only one tissue type for analysis
-    mask = (~df[Dimension.DATE_RUN.value].isin(bad_run_dates)) & (
-        df[Dimension.TISSUE.value].isin({"M", "G"})
+    mask = (~df[Dimension.DATE_RUN].isin(bad_run_dates)) & (
+        df[Dimension.TISSUE].isin({"M", "G"})
     )
-    df[Dimension.GEAR.value] = df[Dimension.GEAR.value].map(
+    df[Dimension.GEAR] = df[Dimension.GEAR].map(
         {"C": "Cage", "N": "Net", "W": "Wild"}
     )
     # Tissue type is already filtered, so only need to check gear and collection date
     df = (
         df[mask]
-        .drop(columns=[Dimension.DATE_RUN.value, Dimension.TISSUE.value])
+        .drop(columns=[Dimension.DATE_RUN, Dimension.TISSUE])
         .dropna()
     )
     pairplot(
         df[
             [
-                Dimension.NITROGEN_FRACTIONATION.value,
-                Dimension.CARBON_FRACTIONATION.value,
-                Dimension.MOLAR_RATIO.value,
-                Dimension.GEAR.value,
+                Dimension.NITROGEN_FRACTIONATION,
+                Dimension.CARBON_FRACTIONATION,
+                Dimension.MOLAR_RATIO,
+                Dimension.GEAR,
             ]
         ],
         markers="x",
-        hue=Dimension.GEAR.value,
+        hue=Dimension.GEAR,
         palette=custom_colors,
     ).savefig(figures / "new-pairplot-all-tissue-gear.png")
 
 
-@tissue.command(PlotCommand.SCATTER_MONTHLY_GEAR.value)
+@tissue.command(PlotCommand.SCATTER_MONTHLY_GEAR)
 @tissue_type_option(TissueType.MUSCLE)
 @figure_size((7.5, 3))
 def plot_scatter_monthly_gear(
@@ -193,42 +193,42 @@ def plot_scatter_monthly_gear(
         ],
         tissue_type,
     )
-    df[Dimension.GEAR.value] = df[Dimension.GEAR.value].map(
+    df[Dimension.GEAR] = df[Dimension.GEAR].map(
         {"C": "Cage", "N": "Net", "W": "Wild"}
     )
     color_map = {"Cage": "tab:cyan", "Net": "tab:blue", "Wild": "tab:pink"}
     # preserve groups as numerical so that they are sorted
     groups = (
         df.dropna()
-        .groupby(Dimension.COLLECTION_DATE.value)
+        .groupby(Dimension.COLLECTION_DATE)
     )
 
     context = subplots(1, len(groups), figsize=figsize, sharex=True, sharey=False)
     fig = context[0]
     ax: list[Axes] = context[1]  # force type hinting
     for ind, (month, data) in enumerate(groups):
-        colors = data[Dimension.GEAR.value].map(color_map)
+        colors = data[Dimension.GEAR].map(color_map)
         ax[ind].scatter(
-            data[Dimension.MOLAR_RATIO.value],
-            data[Dimension.CARBON_FRACTIONATION.value],
+            data[Dimension.MOLAR_RATIO],
+            data[Dimension.CARBON_FRACTIONATION],
             c=colors,
             marker="x",
         )
         ax[ind].set_title(month_name[int(month)])  # type: ignore
         ax[ind].set_xlim(3, 6)
         ax[ind].set_ylim(-19, -16)
-        ax[ind].set_xlabel(Dimension.MOLAR_RATIO.value)
+        ax[ind].set_xlabel(Dimension.MOLAR_RATIO)
         if ind > 0:
             ax[ind].set_yticks([])
         else:
-            ax[ind].set_ylabel(Dimension.CARBON_FRACTIONATION.value)
+            ax[ind].set_ylabel(Dimension.CARBON_FRACTIONATION)
 
     handles = [Patch(color=color, label=label) for label, color in color_map.items()]
     fig.legend(handles=handles, loc="upper right")
     fig.savefig(figures / "rawdata_scatter_monthly_gear.png")
 
 
-@tissue.command(PlotCommand.SCATTER_GEAR_MONTHLY.value)
+@tissue.command(PlotCommand.SCATTER_GEAR_MONTHLY)
 @figure_size((7.5, 5))
 @tissue_type_option(TissueType.MUSCLE)
 def plot_scatter_gear_monthly(figsize: tuple[float, float], tissue_type: TissueType):
@@ -252,17 +252,17 @@ def plot_scatter_gear_monthly(figsize: tuple[float, float], tissue_type: TissueT
     df = df.dropna()
     fig, ax = subplots(figsize=figsize)
     scatterplot(
-        x=df[Dimension.MOLAR_RATIO.value],
-        y=df[Dimension.CARBON_FRACTIONATION.value],
-        hue=df[Dimension.GEAR.value],
+        x=df[Dimension.MOLAR_RATIO],
+        y=df[Dimension.CARBON_FRACTIONATION],
+        hue=df[Dimension.GEAR],
         palette="tab10",
-        style=df[Dimension.COLLECTION_DATE.value],
+        style=df[Dimension.COLLECTION_DATE],
         legend="auto",
         s=150,
         ax=ax,
     )
-    ax.set_xlabel(Dimension.MOLAR_RATIO.value)
-    ax.set_ylabel(Dimension.CARBON_FRACTIONATION.value)
+    ax.set_xlabel(Dimension.MOLAR_RATIO)
+    ax.set_ylabel(Dimension.CARBON_FRACTIONATION)
     fig.savefig(figures / "rawdata_scatter_gear_monthly.png")
 
 
@@ -346,18 +346,18 @@ def isotopes_plot_box_var(
         "C": ("Cage", "blue"),
         "W": ("Wild", "red")
     }
-    df[Dimension.GEAR.value] = df[Dimension.GEAR.value].map({
+    df[Dimension.GEAR] = df[Dimension.GEAR].map({
         key: name for key, (name, _) in lookup.items()
     })
     groups: dict[tuple[float, str], list[float]] = (
         df.groupby(
             [
-                Dimension.COLLECTION_DATE.value,
-                Dimension.GEAR.value,
+                Dimension.COLLECTION_DATE,
+                Dimension.GEAR,
             ]
         )
         .agg(list)
-        .to_dict()[dim.value]
+        .to_dict()[dim]
     )
     fig, ax = subplots(figsize=figsize)
     month_ind = sorted(month for month, _ in groups.keys())
@@ -392,7 +392,7 @@ def isotopes_plot_box_var(
             label=gear
         )
     ax.set_xticks([x + widths for x in positions], labels=labels)
-    ax.set_ylabel(dim.value)
+    ax.set_ylabel(dim)
     ax.legend()
     fig.tight_layout()
     fig.savefig(figures / f"isotopes_plot_box_var_{dim.name.lower()}.png")
@@ -412,15 +412,15 @@ def isotopes_plot_box_gsi(figsize: tuple[float, float]):
             raw_data,
             header=0,
             usecols=[
-                GSIDimension.COLLECTION_DATE.value,
-                GSIDimension.GEAR.value,
-                GSIDimension.GSI.value,
+                GSIDimension.COLLECTION_DATE,
+                GSIDimension.GEAR,
+                GSIDimension.GSI,
             ],
         )
         .dropna()
-        .groupby([GSIDimension.GEAR.value, GSIDimension.COLLECTION_DATE.value])
+        .groupby([GSIDimension.GEAR, GSIDimension.COLLECTION_DATE])
         .agg(list)
-        .to_dict()[GSIDimension.GSI.value]
+        .to_dict()[GSIDimension.GSI]
     )
     gear = ["N", "C", "W"]
 
@@ -468,7 +468,7 @@ def plot_tissue_histograms(figsize: tuple[float, float], tissue_type: TissueType
     ).dropna()
     fig, ax = subplots(figsize=figsize)
     for dim, color in zip(
-        (each.value for each in dims),
+        dims,
         ("black", "blue", "red"),
     ):
         series: Series = df[dim]
@@ -510,10 +510,10 @@ def plot_famd_analysis_2d(
         ],
         tissue_type,
     ).dropna()
-    df[Dimension.COLLECTION_DATE.value] = df[Dimension.COLLECTION_DATE.value].map(dict((i, month_name[i]) for i in range(1, 13)))
+    df[Dimension.COLLECTION_DATE] = df[Dimension.COLLECTION_DATE].map(dict((i, month_name[i]) for i in range(1, 13)))
     factors = calculate_famd(df, 2)
     inner_join = df.join(factors, how="inner")
-    gear_groups = inner_join.groupby(Dimension.GEAR.value)
+    gear_groups = inner_join.groupby(Dimension.GEAR)
     colors = (("red", "o"), ("blue", "D"), ("black", "s"))
     fig, ax = subplots(figsize=figsize)
     for (gear_type, group_df), (color, marker) in zip(gear_groups, colors):
@@ -529,7 +529,7 @@ def plot_famd_analysis_2d(
         )
 
     if convex_hulls:
-        month_groups = inner_join.groupby(Dimension.COLLECTION_DATE.value)
+        month_groups = inner_join.groupby(Dimension.COLLECTION_DATE)
         linestyles = ["--", "-", "-."]
         style_count = len(linestyles)
         for (month, group_df), linestyle, hull_count in zip(
@@ -580,9 +580,9 @@ def clustering_and_pca_analysis():
     ).dropna()
     pca_df = df[
         [
-            Dimension.NITROGEN_FRACTIONATION.value,
-            Dimension.CARBON_FRACTIONATION.value,
-            Dimension.MOLAR_RATIO.value,
+            Dimension.NITROGEN_FRACTIONATION,
+            Dimension.CARBON_FRACTIONATION,
+            Dimension.MOLAR_RATIO,
         ]
     ]
     _, _, loadings, _ = calculate_pca(pca_df)
@@ -626,9 +626,9 @@ def isotopes_plot_pca_scores():
     ).dropna()
     pca_df = df[
         [
-            Dimension.NITROGEN_FRACTIONATION.value,
-            Dimension.CARBON_FRACTIONATION.value,
-            Dimension.MOLAR_RATIO.value,
+            Dimension.NITROGEN_FRACTIONATION,
+            Dimension.CARBON_FRACTIONATION,
+            Dimension.MOLAR_RATIO,
         ]
     ]
     _, components, _, _ = calculate_pca(pca_df)

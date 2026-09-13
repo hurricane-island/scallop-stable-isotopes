@@ -41,10 +41,10 @@ def calculate_famd(partition: DataFrame, components: int):
     """
     famd_data = partition[
         [
-            Dimension.CARBON_FRACTIONATION.value,
-            Dimension.NITROGEN_FRACTIONATION.value,
-            Dimension.MOLAR_RATIO.value,
-            Dimension.COLLECTION_DATE.value,
+            Dimension.CARBON_FRACTIONATION,
+            Dimension.NITROGEN_FRACTIONATION,
+            Dimension.MOLAR_RATIO,
+            Dimension.COLLECTION_DATE,
         ]
     ]
     famd = FAMD(
@@ -69,19 +69,19 @@ def partition_data_by_tissue(
     on each tissue type separately.
     """
     filter_columns = [
-        Dimension.TISSUE.value,
-        Dimension.DATE_RUN.value
+        Dimension.TISSUE,
+        Dimension.DATE_RUN
     ]
     df = read_csv(
         filepath,
         header=0,
         usecols= [
-            *([col.value for col in usecols]),
+            *usecols,
             *filter_columns,
         ],
     )
     # Remove known bad samples, and select only one tissue type for analysis
-    mask = (~df[Dimension.DATE_RUN.value].isin(bad_run_dates)) & (
-        df[Dimension.TISSUE.value] == tissue_type.value
+    mask = (~df[Dimension.DATE_RUN].isin(bad_run_dates)) & (
+        df[Dimension.TISSUE] == tissue_type
     )
     return df[mask].drop(columns=filter_columns)

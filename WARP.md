@@ -99,7 +99,7 @@ The codebase uses consistent colors across visualizations:
 - Red = Wild
 - Green = Nets (in some plots)
 
-### Dimension Enum Pattern
+### Dimension StrEnum Pattern
 
 Scripts use the `Dimension` enum from `stats_analysis.py` to avoid string typos in column names. When working with stable isotope data columns, import and use these enums:
 

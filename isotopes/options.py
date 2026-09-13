@@ -1,8 +1,8 @@
 """
-Enums and Click options for the isotopes package.
+StrEnums and Click options for the isotopes package.
 """
 
-from enum import Enum
+from enum import StrEnum, auto
 from pathlib import Path
 from click import option, Choice
 
@@ -16,7 +16,7 @@ env_data = data_dir / "temperature-and-light.csv"
 custom_colors = ("black", "blue", "red")
 
 
-class Command(Enum):
+class Command(StrEnum):
     """
     Let the linter help with making sure we use consistent command names.
     Only needed for commands that are used many times, where a typo is more likely
@@ -24,10 +24,10 @@ class Command(Enum):
     """
 
     GEAR_TYPE = "gear"
-    TEMPERATURE = "temperature"
+    TEMPERATURE = auto()
 
 
-class Dimension(Enum):
+class Dimension(StrEnum):
     """
     Let the linter help with making sure we use consistent column names.
     Only needed for columns that are used many times, where a typo is more likely
@@ -46,7 +46,7 @@ class Dimension(Enum):
     DATE_RUN = "Date Run"
 
 
-class GSIDimension(Enum):
+class GSIDimension(StrEnum):
     """
     Let the linter help with making sure we use consistent column names.
     Only needed for columns that are used many times, where a typo is more likely
@@ -63,9 +63,9 @@ class GSIDimension(Enum):
     GSI = "GSI"
 
 
-class EnvDimension(Enum):
+class EnvDimension(StrEnum):
     """
-    Enum for the different dimensions in the temperature dataset.
+    StrEnum for the different dimensions in the temperature dataset.
     """
 
     DATE = "Date-Time (EDT)"
@@ -77,9 +77,9 @@ class EnvDimension(Enum):
     WILD_TEMP = "Wild, Temperature (°F)"
 
 
-class CultureMethod(Enum):
+class CultureMethod(StrEnum):
     """
-    Enum for the different culture methods.
+    StrEnum for the different culture methods.
     """
 
     CAGE = "C"
@@ -87,9 +87,9 @@ class CultureMethod(Enum):
     WILD = "W"
 
 
-class TissueType(Enum):
+class TissueType(StrEnum):
     """
-    Enum for the different tissue types.
+    StrEnum for the different tissue types.
     """
 
     MUSCLE = "M"

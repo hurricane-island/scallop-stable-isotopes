@@ -4,7 +4,7 @@ in explaining the variation in stable isotope ratios of scallop tissues
 """
 
 from datetime import date, timedelta
-from enum import Enum
+from enum import StrEnum, auto
 from pathlib import Path
 
 # from warnings import catch_warnings, simplefilter
@@ -29,15 +29,15 @@ from isotopes.options import (
 )
 
 
-class DerivedDimension(Enum):
+class DerivedDimension(StrEnum):
     """Synthetic columns appended for analysis"""
 
-    TEMPERATURE = "temperature"
-    LIGHT = "light"
+    TEMPERATURE = auto()
+    LIGHT = auto()
     DATE = "Collection_Date_Group"
 
 
-class Partitions(Enum):
+class Partitions(StrEnum):
     """Partitioning components"""
 
     GEAR = "Gear"
@@ -55,13 +55,13 @@ collection_date_map = {
 }
 
 temperature_column = {
-    CultureMethod.CAGE.value: EnvDimension.CAGE_TEMP.value,
-    CultureMethod.NET.value: EnvDimension.NET_BOTTOM_TEMP.value,
-    CultureMethod.WILD.value: EnvDimension.WILD_TEMP.value,
+    CultureMethod.CAGE: EnvDimension.CAGE_TEMP,
+    CultureMethod.NET: EnvDimension.NET_BOTTOM_TEMP,
+    CultureMethod.WILD: EnvDimension.WILD_TEMP,
 }
 light_column = {
-    CultureMethod.CAGE.value: EnvDimension.CAGE_LUM.value,
-    CultureMethod.NET.value: EnvDimension.NET_BOTTOM_LUM.value,
+    CultureMethod.CAGE: EnvDimension.CAGE_LUM,
+    CultureMethod.NET: EnvDimension.NET_BOTTOM_LUM,
 }
 
 
@@ -85,28 +85,27 @@ def variation_partitioning_ols(
         Shared environment + gear
         Unexplained
     """
-    str_values = [dim.value for dim in dims]
     count = len(data)
 
-    env_formula = f'Q("{response.value}") ~ {" + ".join(str_values)}'
+    env_formula = f'Q("{response}") ~ {" + ".join(dims)}'
     env_model = ols(formula=env_formula, data=data).fit()
 
-    gear_formula = f'Q("{response.value}") ~ C(Q("{Dimension.GEAR.value}"))'
+    gear_formula = f'Q("{response}") ~ C(Q("{Dimension.GEAR}"))'
     gear_model = ols(formula=gear_formula, data=data).fit()
 
-    full_formula = f'Q("{response.value}") ~ {" + ".join(str_values)} + C(Q("{Dimension.GEAR.value}"))'
+    full_formula = f'Q("{response}") ~ {" + ".join(dims)} + C(Q("{Dimension.GEAR}"))'
     full_model = ols(formula=full_formula, data=data).fit()
 
-    null_formula = f'Q("{response.value}") ~ 1'
+    null_formula = f'Q("{response}") ~ 1'
     null_model = ols(formula=null_formula, data=data).fit()
 
     components = {
-        Partitions.ENVIRONMENT.value: full_model.rsquared - gear_model.rsquared,
-        Partitions.GEAR.value: full_model.rsquared - env_model.rsquared,
-        Partitions.SHARED.value: env_model.rsquared
+        Partitions.ENVIRONMENT: full_model.rsquared - gear_model.rsquared,
+        Partitions.GEAR: full_model.rsquared - env_model.rsquared,
+        Partitions.SHARED: env_model.rsquared
         + gear_model.rsquared
         - full_model.rsquared,
-        Partitions.UNEXPLAINED.value: 1 - full_model.rsquared,
+        Partitions.UNEXPLAINED: 1 - full_model.rsquared,
     }
 
     print(f"\n{response} (N={count})\n")
@@ -121,7 +120,7 @@ def variation_partitioning_ols(
     print(f"{'Total:':30s}{sum(components.values()):.4f}")
 
     return {
-        "Response": response.value,
+        "Response": response,
         "N": count,
         "Environment R2": env_model.rsquared,
         "Gear R2": gear_model.rsquared,
@@ -135,9 +134,9 @@ def plot_partitions(response_df: DataFrame, title: str, outfile: Path):
     Create stacked bar chart of variation partitioning results.
     """
     plot_colors = {
-        Partitions.GEAR.value: "black",
-        Partitions.SHARED.value: "red",
-        Partitions.ENVIRONMENT.value: "blue",
+        Partitions.GEAR: "black",
+        Partitions.SHARED: "red",
+        Partitions.ENVIRONMENT: "blue",
     }
     fig, ax = subplots(figsize=(3, 4))
     x_positions = arange(len(response_df))
@@ -227,12 +226,12 @@ def variation_partitioning_lmm(
         Shared = Environment R² + Gear R² - Full R²
         Unexplained =  1 - Full R²
     """
-    str_values = [dim.value for dim in dims]
+    
     count = len(data)
 
     environment_formula = (
-        f'Q("{response.value}") '
-        f"~ {' + '.join(str_values)}"
+        f'Q("{response}") '
+        f"~ {' + '.join(dims)}"
     )
     kwargs = {
         "reml": reml,
@@ -244,41 +243,41 @@ def variation_partitioning_lmm(
     environment_model = mixedlm(
         formula=environment_formula,
         data=data,
-        groups=DerivedDimension.DATE.value
+        groups=DerivedDimension.DATE
     ).fit(**kwargs)
     environment_marginal, environment_conditional = mixed_model_r2(environment_model)
 
-    gear_formula = f'Q("{response.value}") ' f"~ C(Q('{Dimension.GEAR.value}'))"
+    gear_formula = f'Q("{response}") ' f"~ C(Q('{Dimension.GEAR}'))"
     gear_model = mixedlm(
         formula=gear_formula,
         data=data,
-        groups=DerivedDimension.DATE.value
+        groups=DerivedDimension.DATE
     ).fit(**kwargs)
     gear_marginal, gear_conditional = mixed_model_r2(gear_model)
 
     full_formula = (
-        f'Q("{response.value}") '
-        f"~ {' + '.join(str_values)} + C(Q('{Dimension.GEAR.value}'))"
+        f'Q("{response}") '
+        f"~ {' + '.join(dims)} + C(Q('{Dimension.GEAR}'))"
     )
     full_model = mixedlm(
-        formula=full_formula, data=data, groups=DerivedDimension.DATE.value
+        formula=full_formula, data=data, groups=DerivedDimension.DATE
     ).fit(**kwargs)
     full_marginal, full_conditional = mixed_model_r2(full_model)
 
-    null_formula = f'Q("{response.value}") ~ 1'
+    null_formula = f'Q("{response}") ~ 1'
     null_model = mixedlm(
-        formula=null_formula, data=data, groups=DerivedDimension.DATE.value
+        formula=null_formula, data=data, groups=DerivedDimension.DATE
     ).fit(**kwargs)
     null_marginal, null_conditional = mixed_model_r2(null_model)
 
     components = {
-        Partitions.ENVIRONMENT.value: full_marginal - gear_marginal,
-        Partitions.GEAR.value: full_marginal - environment_marginal,
-        Partitions.SHARED.value: environment_marginal + gear_marginal - full_marginal,
-        Partitions.UNEXPLAINED.value: 1 - full_marginal,
+        Partitions.ENVIRONMENT: full_marginal - gear_marginal,
+        Partitions.GEAR: full_marginal - environment_marginal,
+        Partitions.SHARED: environment_marginal + gear_marginal - full_marginal,
+        Partitions.UNEXPLAINED: 1 - full_marginal,
     }
 
-    print(f"\n{response.value} (N={count})\n")
+    print(f"\n{response} (N={count})\n")
     print(f"{'R² environment:':30s}{environment_marginal:.4f}")
     print(f"{'R² gear:':30s}{gear_marginal:.4f}")
     print(f"{'R² full:':30s}{full_marginal:.4f}")
@@ -291,7 +290,7 @@ def variation_partitioning_lmm(
     print(f"{'Total:':30s}{sum(components.values()):.4f}")
 
     return {
-        "Response": response.value,
+        "Response": response,
         "N": count,
         "Environment R2": environment_marginal,
         "Gear R2": gear_marginal,
@@ -319,16 +318,16 @@ def run_analysis(env_dims: list[DerivedDimension]):
     ).dropna()
 
     # Add columns to populate with derived or environmental data
-    df[DerivedDimension.TEMPERATURE.value] = nan
-    df[DerivedDimension.LIGHT.value] = nan
+    df[DerivedDimension.TEMPERATURE] = nan
+    df[DerivedDimension.LIGHT] = nan
     df["Collection_Date_Group"] = None
 
     env = read_csv(env_data)
-    env[EnvDimension.DATE.value] = to_datetime(
-        env[EnvDimension.DATE.value], format="%m/%d/%y %H:%M"
+    env[EnvDimension.DATE] = to_datetime(
+        env[EnvDimension.DATE], format="%m/%d/%y %H:%M"
     )
-    env_dates = env[EnvDimension.DATE.value].dt.date
-    groupby = df.groupby([Dimension.GEAR.value, Dimension.COLLECTION_DATE.value])
+    env_dates = env[EnvDimension.DATE].dt.date
+    groupby = df.groupby([Dimension.GEAR, Dimension.COLLECTION_DATE])
     # Each group of method and collection date will share the same
     # environmental conditions
     for (gear, month), indx in groupby.groups.items():
@@ -336,24 +335,23 @@ def run_analysis(env_dims: list[DerivedDimension]):
         end_date = collection_date_map[int(month)]
         start_date = end_date - timedelta(days=30)
         env_subset = env[(env_dates >= start_date) & (env_dates <= end_date)]
-        df.loc[indx, DerivedDimension.TEMPERATURE.value] = env_subset[
+        df.loc[indx, DerivedDimension.TEMPERATURE] = env_subset[
             temperature_column[gear]
         ].mean()
-        df.loc[indx, DerivedDimension.LIGHT.value] = (
+        df.loc[indx, DerivedDimension.LIGHT] = (
             env_subset[light_column[gear]].mean() if gear in light_column else nan
         )
         df.loc[indx, "Collection_Date_Group"] = end_date
 
-    env_dims_str = [dim.value for dim in env_dims]
-    df = df.dropna(subset=env_dims_str)
+    df = df.dropna(subset=env_dims)
 
     # Check for multi-collinearity using Variance Inflation Factor
     # Drop first to prevent dummy variable trap, where each is `inf`
     X: DataFrame = get_dummies(
         df[
             [
-                *env_dims_str,
-                Dimension.GEAR.value,
+                *env_dims,
+                Dimension.GEAR,
             ]
         ],
         drop_first=True,  # prevent dummy variable trap, where each is `inf`
@@ -371,14 +369,14 @@ def run_analysis(env_dims: list[DerivedDimension]):
 
     for r in response_vars:
         result = mixedlm(
-            f'Q("{r.value}") ~ {" + ".join(env_dims_str)} + C(Q("{Dimension.GEAR.value}"))',
+            f'Q("{r}") ~ {" + ".join(env_dims)} + C(Q("{Dimension.GEAR}"))',
             data=df,
-            groups=df[Dimension.COLLECTION_DATE.value],
+            groups=df[Dimension.COLLECTION_DATE],
         ).fit()
         print(result.summary())
 
     analysis_var: list[str] = [
-        each.value.lower() for each in [*env_dims, Dimension.GEAR]
+        each.lower() for each in [*env_dims, Dimension.GEAR]
     ]
     print(f"\nVARIATION PARTITIONING: {' + '.join(analysis_var)}")
     print("-" * 80)

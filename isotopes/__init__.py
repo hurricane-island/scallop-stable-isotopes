@@ -1,4 +1,3 @@
-# pylint: disable=too-many-lines,redefined-builtin
 """
 This module contains methods for statistical analysis of stable isotope data,
 especially Principal Component Analysis (PCA) using the `sklearn` and `scipy`
